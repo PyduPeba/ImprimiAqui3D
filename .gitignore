@@ -1,0 +1,57 @@
+# Arquivos de ambiente (NUNCA commitar!)
+.env
+.env.local
+.env.production
+.env.development
+*.env
+
+# Dependências
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Logs
+logs/
+*.log
+
+# Uploads e arquivos temporários
+uploads/
+temp/
+tmp/
+
+# Backups
+backups/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Docker
+*.pid
+*.seed
+*.pid.lock
+
+# Testes
+coverage/
+.nyc_output/
+
+# Cache
+.cache/
+.parcel-cache/
+.eslintcache

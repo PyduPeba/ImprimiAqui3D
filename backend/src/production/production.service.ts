@@ -1,0 +1,227 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { PrintJob } from './entities/print-job.entity';
+import { Printer } from './entities/printer.entity';
+import { MaintenanceLog } from './entities/maintenance-log.entity';
+import { PrintStatus, PrinterStatus } from './enums/production.enums';
+import { ProductionGateway } from './production.gateway';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '../notifications/entities/notification.entity';
+import { User } from '../auth/entities/user.entity';
+import { UserRole } from '../auth/enums/user-role.enum';
+
+@Injectable()
+export class ProductionService {
+    constructor(
+        @InjectRepository(PrintJob)
+        private printJobRepository: Repository<PrintJob>,
+        @InjectRepository(Printer)
+        private printerRepository: Repository<Printer>,
+        @InjectRepository(MaintenanceLog)
+        private maintenanceLogRepository: Repository<MaintenanceLog>,
+        private productionGateway: ProductionGateway,
+        private notificationsService: NotificationsService,
+    ) { }
+
+    async createJob(saleItemId: string, estimatedTime: number) {
+        const job = this.printJobRepository.create({
+            saleItemId,
+            estimatedTime,
+            priority: 3,
+            status: PrintStatus.WAITING,
+        });
+        return this.printJobRepository.save(job);
+    }
+
+    async assignPrinter(jobId: string, printerId: string) {
+        const job = await this.printJobRepository.findOne({ where: { id: jobId } });
+        if (!job) throw new NotFoundException('Trabalho de impressão não encontrado');
+
+        const printer = await this.printerRepository.findOne({ where: { id: printerId } });
+        if (!printer) throw new NotFoundException('Impressora não encontrada');
+
+        job.printer = printer;
+        return this.printJobRepository.save(job);
+    }
+
+    async updateJobStatus(jobId: string, status: PrintStatus) {
+        const job = await this.printJobRepository.findOne({
+            where: { id: jobId },
+            relations: ['printer']
+        });
+        if (!job) throw new NotFoundException('Trabalho de impressão não encontrado');
+
+        const oldStatus = job.status;
+        job.status = status;
+
+        if (status === PrintStatus.PRINTING) {
+            job.startedAt = new Date();
+        } else if (status === PrintStatus.COMPLETED || status === PrintStatus.FAILED) {
+            const now = new Date();
+            job.completedAt = now;
+
+            // Calculate actual time in minutes if we have a startedAt date
+            if (job.startedAt) {
+                const diffMs = now.getTime() - job.startedAt.getTime();
+                job.actualTime = Math.round(diffMs / (1000 * 60));
+            }
+
+            // Usage Tracking: If it shifted to COMPLETED, increment printer usage
+            if (status === PrintStatus.COMPLETED && job.printer) {
+                const printer = await this.printerRepository.findOne({ where: { id: job.printer.id } });
+                if (printer) {
+                    const timeSpent = job.actualTime > 0 ? job.actualTime : job.estimatedTime;
+                    printer.totalPrintTimeMinutes = Number(printer.totalPrintTimeMinutes) + Number(timeSpent);
+                    printer.lastMaintenanceTimeMinutes = Number(printer.lastMaintenanceTimeMinutes) + Number(timeSpent);
+
+                    await this.printerRepository.save(printer);
+
+                    // Maintenance Alert
+                    if (printer.lastMaintenanceTimeMinutes >= printer.maintenanceIntervalMinutes) {
+                        await this.sendMaintenanceAlert(printer);
+                    }
+                }
+            }
+        }
+
+        const savedJob = await this.printJobRepository.save(job);
+        this.productionGateway.notifyStatusChange(jobId, status);
+
+        // Notify admins about completion or failure
+        if (status === PrintStatus.COMPLETED || status === PrintStatus.FAILED) {
+            const admins = await this.printJobRepository.manager.find(User, {
+                where: [
+                    { role: UserRole.ADMIN },
+                    { role: UserRole.MANAGER },
+                ]
+            });
+
+            const printerName = job.printer?.name || 'Impressora desconhecida';
+            const title = status === PrintStatus.COMPLETED ? 'Impressão Concluída' : '⚠️ Falha na Impressão';
+            const message = status === PrintStatus.COMPLETED
+                ? `O trabalho na ${printerName} foi concluído com sucesso.`
+                : `Ocorreu uma falha no trabalho de impressão na ${printerName}.`;
+
+            for (const admin of admins) {
+                await this.notificationsService.create(
+                    admin.id,
+                    NotificationType.PRODUCTION,
+                    title,
+                    message
+                );
+            }
+        }
+
+        return savedJob;
+    }
+
+    private async sendMaintenanceAlert(printer: Printer) {
+        const admins = await this.printerRepository.manager.find(User, {
+            where: [
+                { role: UserRole.ADMIN },
+                { role: UserRole.MANAGER },
+            ]
+        });
+
+        const usageHours = (printer.lastMaintenanceTimeMinutes / 60).toFixed(0);
+
+        for (const admin of admins) {
+            await this.notificationsService.create(
+                admin.id,
+                NotificationType.PRODUCTION,
+                '🛠️ Manutenção Recomendada',
+                `A impressora "${printer.name}" atingiu ${usageHours}h de uso desde a última revisão. Recomenda-se realizar manutenção preventiva.`
+            );
+        }
+    }
+
+    async getQueue() {
+        return this.printJobRepository.find({
+            relations: ['printer'],
+            order: { priority: 'ASC', createdAt: 'ASC' },
+        });
+    }
+
+    // Printer Management
+    async findAllPrinters() {
+        return this.printerRepository.find();
+    }
+
+    async findPrinterById(id: string) {
+        const printer = await this.printerRepository.findOne({ where: { id } });
+        if (!printer) throw new NotFoundException('Impressora não encontrada');
+        return printer;
+    }
+
+    async createPrinter(data: any) {
+        const { id, ...rest } = data;
+
+        // Coerção de campos numéricos
+        if (rest.buildVolumeX !== undefined) rest.buildVolumeX = Number(rest.buildVolumeX);
+        if (rest.buildVolumeY !== undefined) rest.buildVolumeY = Number(rest.buildVolumeY);
+        if (rest.buildVolumeZ !== undefined) rest.buildVolumeZ = Number(rest.buildVolumeZ);
+        if (rest.purchasePrice !== undefined && rest.purchasePrice !== null && rest.purchasePrice !== '') {
+            rest.purchasePrice = Number(rest.purchasePrice);
+        } else {
+            delete rest.purchasePrice;
+        }
+
+        const printer = this.printerRepository.create(rest as object);
+        return this.printerRepository.save(printer);
+    }
+
+    async updatePrinter(id: string, data: any) {
+        const { id: _, ...rest } = data;
+
+        // Coerção de campos numéricos
+        if (rest.buildVolumeX !== undefined) rest.buildVolumeX = Number(rest.buildVolumeX);
+        if (rest.buildVolumeY !== undefined) rest.buildVolumeY = Number(rest.buildVolumeY);
+        if (rest.buildVolumeZ !== undefined) rest.buildVolumeZ = Number(rest.buildVolumeZ);
+        if (rest.purchasePrice !== undefined && rest.purchasePrice !== null && rest.purchasePrice !== '') {
+            rest.purchasePrice = Number(rest.purchasePrice);
+        } else {
+            delete rest.purchasePrice;
+        }
+
+        await this.printerRepository.update(id, rest);
+        return this.findPrinterById(id);
+    }
+
+    async deletePrinter(id: string) {
+        const printer = await this.findPrinterById(id);
+        return this.printerRepository.remove(printer);
+    }
+
+    // Maintenance Logs
+    async findAllMaintenanceLogs() {
+        return this.maintenanceLogRepository.find({
+            relations: ['printer'],
+            order: { date: 'DESC' }
+        });
+    }
+
+    async findMaintenanceLogsByPrinter(printerId: string) {
+        return this.maintenanceLogRepository.find({
+            where: { printerId },
+            order: { date: 'DESC' }
+        });
+    }
+
+    async createMaintenanceLog(data: any) {
+        const printer = await this.findPrinterById(data.printerId);
+
+        const log = this.maintenanceLogRepository.create({
+            ...data,
+            printerUsageAtTime: printer.totalPrintTimeMinutes
+        });
+
+        const savedLog = await this.maintenanceLogRepository.save(log);
+
+        // Reset the printer's maintenance timer
+        printer.lastMaintenanceTimeMinutes = 0;
+        await this.printerRepository.save(printer);
+
+        return savedLog;
+    }
+}
