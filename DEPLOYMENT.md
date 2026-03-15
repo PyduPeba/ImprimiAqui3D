@@ -131,4 +131,79 @@ Após a instalação limpa, utilize o usuário administrador padrão:
 > [!CAUTION]
 > Altere a senha imediatamente após o primeiro acesso em **Configurações > Minha Conta**.
 
-**Suporte**: Em caso de erros persistentes, consulte `backend/logs` após a inicialização.
+---
+
+## 🐧 Instalação no Ubuntu Server 24.04 (SSH / Bare-metal)
+
+Este passo a passo é focado na instalação direta no sistema utilizando **PM2** para gerenciar as aplicações e **Docker** para os serviços de infraestrutura (Banco de Dados e Cache).
+
+### 1. Atualização e Ferramentas Básicas
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y curl git wget build-essential
+```
+
+### 2. Instalação do Docker
+Utilizaremos o Docker para rodar o Postgres e o Redis, garantindo isolamento e facilidade de backup.
+```bash
+# Instalar Docker
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+sudo usermod -aG docker $USER
+# (Opcional: Deslogue e logue novamente via SSH para as permissões de grupo funcionarem)
+```
+
+### 3. Instalação do Node.js (via NVM) e PM2
+```bash
+# Instalar NVM
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+source ~/.bashrc # Recarregar bash
+
+# Instalar Node v20 (LTS)
+nvm install 20.9.0
+nvm use 20.9.0
+
+# Instalar PM2 Globalmente
+npm install -g pm2
+```
+
+### 4. Setup do Projeto
+```bash
+# Clonar o repositório (substitua pela sua URL se necessário)
+git clone https://github.com/PyduPeba/ImprimiAqui3D.git
+cd ImprimiAqui3D
+
+# Rodar o setup para gerar os .env
+chmod +x scripts/setup.sh
+./scripts/setup.sh
+```
+
+### 5. Inicialização dos Serviços
+
+#### A. Banco de Dados e Redis (Docker)
+Iniciaremos apenas os serviços de base:
+```bash
+docker compose up -d postgres redis
+```
+
+#### B. Backend e Frontend (PM2)
+O arquivo `ecosystem.config.js` na raiz do projeto gerencia ambos os processos:
+```bash
+# Instalar e Buildar Backend
+cd backend && npm install && npm run build && cd ..
+
+# Instalar Frontend (O Next.js será iniciado pelo PM2)
+cd frontend && npm install && cd ..
+
+# Iniciar via PM2
+pm2 start ecosystem.config.js
+pm2 save
+pm2 startup # Siga as instruções na tela para habilitar no boot
+```
+
+### 6. Monitoramento
+- Ver o sistema online: `pm2 status`
+- Ver os logs em tempo real: `pm2 logs`
+- Painel visual básico: `pm2 monit`
+
+---
