@@ -1,0 +1,132 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: imprimiaqui3d-postgres-dev
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    environment:
+      POSTGRES_USER: imprimiaqui
+      POSTGRES_PASSWORD: imprimiaqui_secure_2026
+      POSTGRES_DB: imprimiaqui3d
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - imprimiaqui-network-dev
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U imprimiaqui -d imprimiaqui3d"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache & Queue
+  redis:
+    image: redis:7-alpine
+    container_name: imprimiaqui3d-redis-dev
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+    command: redis-server --requirepass redis_secure_2026 --appendonly yes --maxmemory 200mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data_dev:/data
+    networks:
+      - imprimiaqui-network-dev
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API (NestJS) - Development Mode
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: imprimiaqui3d-backend-dev
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 4096M
+        reservations:
+          memory: 2048M
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      CHOKIDAR_USEPOLLING: "true"
+      NODE_OPTIONS: "--max-old-space-size=3072"
+    env_file:
+      - ./backend/.env
+    ports:
+      - "3001:3001"
+      - "9229:9229"  # Debug port
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - ./backend/uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - imprimiaqui-network-dev
+    command: npm run start:dev
+
+  # Frontend (Next.js) - Development Mode
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+    container_name: imprimiaqui3d-frontend-dev
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1792M
+        reservations:
+          memory: 512M
+    environment:
+      NODE_ENV: development
+      WATCHPACK_POLLING: "true"
+      NODE_OPTIONS: "--max-old-space-size=1536"
+    env_file:
+      - ./frontend/.env.local
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - backend
+    networks:
+      - imprimiaqui-network-dev
+    command: npm run dev
+
+volumes:
+  postgres_data_dev:
+    driver: local
+  redis_data_dev:
+    driver: local
+
+networks:
+  imprimiaqui-network-dev:
+    driver: bridge

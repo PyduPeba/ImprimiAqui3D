@@ -1,0 +1,65 @@
+{
+  "name": "imprimiaqui3d-desktop",
+  "version": "1.0.0",
+  "description": "ImprimiAqui3D - App Desktop",
+  "main": "main.js",
+  "author": "ImprimiAqui3D",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dev": "cross-env NODE_ENV=development electron .",
+    "build:win": "electron-builder --win",
+    "build:linux": "electron-builder --linux",
+    "build:all": "electron-builder --win --linux"
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.9"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.imprimiaqui3d.desktop",
+    "productName": "ImprimiAqui3D",
+    "icon": "assets/icon",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "SEU_USUARIO_GITHUB",
+        "repo": "imprimiaqui3d-releases"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "icon": "assets/icon.png",
+      "category": "Utility"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerHeader": "assets/installer-header.bmp",
+      "installerHeaderIcon": "assets/icon.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "ImprimiAqui3D",
+      "license": "LICENSE.txt",
+      "uninstallDisplayName": "ImprimiAqui3D"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "assets/**/*"
+    ]
+  }
+}
