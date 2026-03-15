@@ -35,10 +35,23 @@ Desenvolvemos scripts de automação que preparam o ambiente, criam volumes pers
    chmod +x scripts/setup.sh
    ./scripts/setup.sh
    ```
-3. Inicie o sistema:
+3. O script perguntará se deseja configurar a **Inicialização Automática**. Responda `s` para criar o atalho de sistema.
+4. Inicie o sistema:
    ```bash
    docker-compose up -d --build
    ```
+
+---
+
+## ⚡ Inicialização Automática (Autostart)
+
+O sistema pode ser configurado para iniciar automaticamente ao ligar o computador (ideal para totens ou servidores dedicados).
+
+### Windows
+Ao executar o `.\scripts\setup.ps1`, escolha `S` na opção de inicialização automática. Isso criará um script invisível (`.vbs`) na sua pasta de Inicialização do Windows que executa o `start.ps1` em modo produção.
+
+### Linux
+No setup, ao escolher `s`, um arquivo `.desktop` será criado em `~/.config/autostart/`, garantindo que o Docker e a interface subam no login do usuário.
 
 ---
 

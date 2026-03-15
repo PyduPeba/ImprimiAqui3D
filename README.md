@@ -203,4 +203,4 @@ Desenvolvido com ❤️ para a comunidade maker brasileira.
 ---
 
 **Versão:** 1.1.0  
-**Última atualização:** 2026-03-14
+**Última atualização:** 2026-03-15
