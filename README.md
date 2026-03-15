@@ -92,7 +92,7 @@
 
 1. **Clone o repositório** (ou navegue até a pasta do projeto)
    ```powershell
-   cd C:\Users\CeearaU\Desktop\ImprimiAqui3D
+   cd C:\Users\...\Desktop\ImprimiAqui3D
    ```
 
 2. **Inicie o sistema**
@@ -192,7 +192,6 @@ Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalh
 
 Para dúvidas, problemas ou sugestões:
 
-- 📧 Email: suporte@imprimiaqui3d.com.br
 - 📖 Documentação: [docs/](docs/)
 - 🐛 Issues: [GitHub Issues](https://github.com/seu-usuario/imprimiaqui3d/issues)
 
