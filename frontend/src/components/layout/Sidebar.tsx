@@ -55,11 +55,18 @@ export function Sidebar() {
     loadBranding();
   }, []);
 
+  const getImageUrl = (path: string | undefined) => {
+    if (!path) return '';
+    if (path.startsWith('http') || path.startsWith('data:')) return path;
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+    return `${baseUrl}${path}`.replace('/api/uploads', '/uploads');
+  };
+
   return (
     <aside className="w-64 glass-sidebar h-screen fixed left-0 top-0 flex flex-col z-50">
       <div className="p-8 flex items-center justify-center gap-3">
         {branding.logoUrl ? (
-          <img src={branding.logoUrl} alt="Logo" className="max-h-14 max-w-full object-contain filter drop-shadow-[0_0_8px_rgba(16,185,129,0.3)]" />
+          <img src={getImageUrl(branding.logoUrl)} alt="Logo" className="max-h-14 max-w-full object-contain filter drop-shadow-[0_0_8px_rgba(16,185,129,0.3)]" />
         ) : (
           <div className="flex items-center gap-3 group cursor-default">
             <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-lg shadow-emerald-500/20 group-hover:scale-110 transition-transform">

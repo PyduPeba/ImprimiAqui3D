@@ -43,6 +43,13 @@ export function GeneralSettings({ settings, onUpdate }: Props) {
         });
     };
 
+    const getImageUrl = (path: string | undefined) => {
+        if (!path) return '';
+        if (path.startsWith('http') || path.startsWith('data:')) return path;
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+        return `${baseUrl}${path}`.replace('/api/uploads', '/uploads');
+    };
+
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700">
             {/* Store Information Section */}
@@ -107,7 +114,7 @@ export function GeneralSettings({ settings, onUpdate }: Props) {
                                 <div className="relative group/logo">
                                     <div className="w-40 h-40 rounded-2xl border-2 border-dashed border-white/10 flex items-center justify-center bg-black/20 overflow-hidden group-hover/logo:border-emerald-500/50 transition-all duration-500 shadow-inner">
                                         {settings.branding?.logoUrl ? (
-                                            <img src={settings.branding.logoUrl} alt="Logo Preview" className="w-full h-full object-contain p-4 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] group-hover/logo:scale-105 transition-transform duration-500" />
+                                            <img src={getImageUrl(settings.branding.logoUrl)} alt="Logo Preview" className="w-full h-full object-contain p-4 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] group-hover/logo:scale-105 transition-transform duration-500" />
                                         ) : (
                                             <div className="flex flex-col items-center gap-2 opacity-30 group-hover/logo:opacity-100 transition-opacity duration-500">
                                                 <Upload className="text-white" size={32} />
