@@ -28,6 +28,7 @@ export default function VendasPage() {
   const [loading, setLoading] = useState(true);
   const [selectedSale, setSelectedSale] = useState<any>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [pdfContent, setPdfContent] = useState<string | null>(null);
 
   const [filters, setFilters] = useState({
     page: 1,
@@ -140,38 +141,18 @@ export default function VendasPage() {
       };
 
       const response = await api.post('/sales/quote/pdf', pdfData);
-      
-      // Open HTML in invisible iframe to trigger print dialog (works in standard browsers and Electron)
-      const iframe = document.createElement('iframe');
-      iframe.style.position = 'absolute';
-      iframe.style.width = '0px';
-      iframe.style.height = '0px';
-      iframe.style.border = 'none';
-      document.body.appendChild(iframe);
-
-      const doc = iframe.contentWindow?.document;
-      if (doc) {
-        doc.open();
-        doc.write(response.data);
-        doc.close();
-      }
-
-      // Wait for content to load then trigger print dialog
-      iframe.onload = () => {
-        setTimeout(() => {
-          iframe.contentWindow?.focus();
-          iframe.contentWindow?.print();
-          
-          // Clean up after print dialog closes
-          setTimeout(() => {
-            if (document.body.contains(iframe)) {
-              document.body.removeChild(iframe);
-            }
-          }, 1000);
-        }, 250);
-      };
+      setPdfContent(response.data);
     } catch (err) {
       console.error('Error generating PDF:', err);
+    }
+  };
+
+  const handlePrintPdf = () => {
+    if (!pdfContent) return;
+    const iframe = document.getElementById('pdf-print-iframe') as HTMLIFrameElement;
+    if (iframe && iframe.contentWindow) {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
     }
   };
 
@@ -506,6 +487,51 @@ export default function VendasPage() {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PDF Viewer Modal */}
+      {pdfContent && (
+        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-sm flex items-center justify-center z-[110] p-4 animate-in fade-in duration-300">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-white/10 bg-slate-900/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400">
+                  <FileText size={20} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-white tracking-tight">Visualizador de Documento</h3>
+                  <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-0.5">Pré-visualização do Orçamento / Pedido</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={handlePrintPdf}
+                  className="flex items-center gap-2 px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 active:scale-95 transition-all rounded-xl text-white font-black text-sm shadow-lg shadow-emerald-500/20"
+                >
+                  <FileText size={18} />
+                  Imprimir / Salvar PDF
+                </button>
+                <button
+                  onClick={() => setPdfContent(null)}
+                  className="w-10 h-10 flex items-center justify-center bg-white/5 hover:bg-white/10 active:scale-95 transition-all rounded-xl text-slate-400 hover:text-white"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+            
+            {/* Modal Body (Iframe) */}
+            <div className="flex-1 bg-slate-800 p-4">
+              <iframe
+                id="pdf-print-iframe"
+                srcDoc={pdfContent}
+                className="w-full h-full bg-white rounded-xl shadow-lg border-none"
+                title="PDF Preview"
+              />
             </div>
           </div>
         </div>
