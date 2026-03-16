@@ -60,22 +60,30 @@ REDIS_PASS=$(generate_password 24)
 JWT_SEC=$(generate_password 64)
 JWT_REFRESH=$(generate_password 64)
 
+# Detectar IP Local (tentar obter o IP da rede local)
+LOCAL_IP=$(hostname -I | awk '{print $1}')
+if [ -z "$LOCAL_IP" ]; then
+    LOCAL_IP="localhost"
+fi
+
+echo -e "  ${NC}[i] IP Detectado: $LOCAL_IP${NC}"
+
 if [ ! -f "backend/.env.production" ]; then
     cat <<EOF > backend/.env.production
 NODE_ENV=production
 PORT=3001
 API_PREFIX=api
 
-DB_HOST=postgres
-DB_PORT=5432
+DB_HOST=localhost
+DB_PORT=15432
 DB_USERNAME=imprimiaqui
 DB_PASSWORD=$DB_PASS
 DB_DATABASE=imprimiaqui3d
 DB_SYNCHRONIZE=false
 DB_LOGGING=false
 
-REDIS_HOST=redis
-REDIS_PORT=6379
+REDIS_HOST=localhost
+REDIS_PORT=16379
 REDIS_PASSWORD=$REDIS_PASS
 
 JWT_SECRET=$JWT_SEC
@@ -85,25 +93,25 @@ JWT_REFRESH_EXPIRES_IN=7d
 
 MAX_FILE_SIZE=52428800
 UPLOAD_PATH=./uploads
-CORS_ORIGIN=http://localhost
+CORS_ORIGIN=http://$LOCAL_IP:3000
 THROTTLE_TTL=60
 THROTTLE_LIMIT=100
 EOF
     echo -e "  ${GREEN}[+] Gerado: backend/.env.production${NC}"
 else
-    echo -e "  ${NC}[!] Aviso: backend/.env.production já existe. Pulando.${NC}"
+    echo -e "  ${NC}[!] Aviso: backend/.env.production já existe. Se o IP mudou, verifique CORS_ORIGIN.${NC}"
 fi
 
 if [ ! -f "frontend/.env.production" ]; then
     cat <<EOF > frontend/.env.production
-NEXT_PUBLIC_API_URL=http://localhost/api
-NEXT_PUBLIC_WS_URL=http://localhost
+NEXT_PUBLIC_API_URL=http://$LOCAL_IP:3001/api
+NEXT_PUBLIC_WS_URL=http://$LOCAL_IP:3001
 NEXT_PUBLIC_APP_NAME=ImprimiAqui3D
 NEXT_PUBLIC_APP_VERSION=1.0.0
 EOF
     echo -e "  ${GREEN}[+] Gerado: frontend/.env.production${NC}"
 else
-    echo -e "  ${NC}[!] Aviso: frontend/.env.production já existe. Pulando.${NC}"
+    echo -e "  ${NC}[!] Aviso: frontend/.env.production já existe. Se o IP mudou, atualize manualmente.${NC}"
 fi
 
 # 5. Configurar Inicialização Automática (Opcional)
