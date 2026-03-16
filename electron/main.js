@@ -7,7 +7,7 @@ const MoonrakerClient = require('./moonraker-client');
 
 
 // ─── Configuração ─────────────────────────────────────────────────────────────
-const APP_URL = 'https://SEU_DOMINIO.com'; // <- Substitua pela URL do seu servidor
+const APP_URL = 'http://192.168.18.240:3000'; // Apontando para o servidor local
 const DEV_URL = 'http://localhost:3000';
 const isDev = process.env.NODE_ENV === 'development';
 

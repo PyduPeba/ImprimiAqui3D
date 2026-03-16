@@ -141,14 +141,35 @@ export default function VendasPage() {
 
       const response = await api.post('/sales/quote/pdf', pdfData);
       
-      const printWindow = window.open('', '_blank');
-      if (printWindow) {
-        printWindow.document.write(response.data);
-        printWindow.document.close();
-        printWindow.onload = () => {
-          setTimeout(() => printWindow.print(), 250);
-        };
+      // Open HTML in invisible iframe to trigger print dialog (works in standard browsers and Electron)
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'absolute';
+      iframe.style.width = '0px';
+      iframe.style.height = '0px';
+      iframe.style.border = 'none';
+      document.body.appendChild(iframe);
+
+      const doc = iframe.contentWindow?.document;
+      if (doc) {
+        doc.open();
+        doc.write(response.data);
+        doc.close();
       }
+
+      // Wait for content to load then trigger print dialog
+      iframe.onload = () => {
+        setTimeout(() => {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+          
+          // Clean up after print dialog closes
+          setTimeout(() => {
+            if (document.body.contains(iframe)) {
+              document.body.removeChild(iframe);
+            }
+          }, 1000);
+        }, 250);
+      };
     } catch (err) {
       console.error('Error generating PDF:', err);
     }
