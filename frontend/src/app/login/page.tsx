@@ -41,6 +41,20 @@ export default function LoginPage() {
   
   const [branding, setBranding] = useState<{name?: string, logoUrl?: string}>({});
 
+  React.useEffect(() => {
+    async function loadBranding() {
+      try {
+        const settings = await import('@/services/settings.service').then(m => m.settingsService.getPublicSettings());
+        if (settings) {
+            setBranding({
+                name: settings.name,
+                logoUrl: settings.branding?.logoUrl
+            });
+        }
+      } catch (error) {
+        console.warn('Failed to load branding', error);
+      }
+    }
     loadBranding();
 
     // Load saved email if rememberMe was previously active
