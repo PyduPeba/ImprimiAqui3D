@@ -28,34 +28,39 @@ export default function LoginPage() {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
+    defaultValues: {
+        rememberMe: true
+    }
   });
 
   const { login } = useAuth();
   
   const [branding, setBranding] = useState<{name?: string, logoUrl?: string}>({});
 
-  React.useEffect(() => {
-    async function loadBranding() {
-      try {
-        const settings = await import('@/services/settings.service').then(m => m.settingsService.getPublicSettings());
-        if (settings) {
-            setBranding({
-                name: settings.name,
-                logoUrl: settings.branding?.logoUrl
-            });
-        }
-      } catch (error) {
-        console.warn('Failed to load branding', error);
-      }
-    }
     loadBranding();
-  }, []);
+
+    // Load saved email if rememberMe was previously active
+    const savedEmail = localStorage.getItem('rememberedEmail');
+    if (savedEmail) {
+        setValue('email', savedEmail);
+        setValue('rememberMe', true);
+    }
+  }, [setValue]);
 
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
+    
+    // Handle "Remember Me" locally
+    if (data.rememberMe) {
+        localStorage.setItem('rememberedEmail', data.email);
+    } else {
+        localStorage.removeItem('rememberedEmail');
+    }
+
     try {
       await login({
         email: data.email,
