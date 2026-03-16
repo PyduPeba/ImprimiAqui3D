@@ -24,7 +24,7 @@ export class AppService implements OnModuleInit {
       this.logger.log('Checking for initial store and admin user...');
 
       let stores = await this.configService.findAllStores();
-      let defaultStore;
+      let defaultStore: any;
       if (stores.length === 0) {
         this.logger.log('Creating default store...');
         defaultStore = await this.configService.createStore({
