@@ -20,8 +20,8 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-if ! command -v docker-compose &> /dev/null; then
-    echo -e "${RED}[ERRO] Docker Compose não encontrado.${NC}"
+if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
+    echo -e "${RED}[ERRO] Docker Compose não encontrado. Instale o plugin com: sudo apt install docker-compose-v2${NC}"
     exit 1
 fi
 echo -e "  ${GREEN}[OK] Docker & Docker Compose encontrados.${NC}"

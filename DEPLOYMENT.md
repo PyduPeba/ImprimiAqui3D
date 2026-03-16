@@ -141,6 +141,13 @@ Este passo a passo é focado na instalação direta no sistema utilizando **PM2*
 ```bash
 sudo apt update && sudo apt upgrade -y
 sudo apt install -y curl git wget build-essential
+
+# Liberar Portas no Firewall (UFW)
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw allow 3000/tcp
+sudo ufw allow 3001/tcp
+sudo ufw reload
 ```
 
 ### 2. Instalação do Docker
@@ -192,8 +199,8 @@ O arquivo `ecosystem.config.js` na raiz do projeto gerencia ambos os processos:
 # Instalar e Buildar Backend
 cd backend && npm install && npm run build && cd ..
 
-# Instalar Frontend (O Next.js será iniciado pelo PM2)
-cd frontend && npm install && cd ..
+# Instalar e Buildar Frontend (O Next.js requer build para rodar 'start')
+cd frontend && npm install && npm run build && cd ..
 
 # Iniciar via PM2
 pm2 start ecosystem.config.js
