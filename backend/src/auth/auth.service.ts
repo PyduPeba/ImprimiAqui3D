@@ -66,4 +66,13 @@ export class AuthService {
 
         return this.userRepository.save(admin);
     }
+
+    async updateUserStore(email: string, storeId: string) {
+        const user = await this.userRepository.findOne({ where: { email } });
+        if (user && !user.storeId) {
+            user.storeId = storeId;
+            return this.userRepository.save(user);
+        }
+        return user;
+    }
 }
