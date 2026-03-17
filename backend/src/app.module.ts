@@ -22,6 +22,8 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { MapGeneratorModule } from './map-generator/map-generator.module';
 import { UsersModule } from './users/users.module';
+import { HomeAssistantService } from './home-assistant/home-assistant.service';
+import { HomeAssistantModule } from './home-assistant/home-assistant.module';
 
 @Module({
   imports: [
@@ -75,8 +77,9 @@ import { UsersModule } from './users/users.module';
     NotificationsModule,
     MapGeneratorModule,
     UsersModule,
+    HomeAssistantModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, HomeAssistantService],
 })
 export class AppModule { }

@@ -35,4 +35,8 @@ export const dashboardService = {
         const response = await api.get('/dashboard/modeling-requests');
         return response.data;
     },
+    async getPrinters() {
+        const response = await api.get('/dashboard/printers');
+        return response.data;
+    },
 };

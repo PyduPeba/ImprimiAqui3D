@@ -79,13 +79,14 @@ export default function DashboardPage() {
   const [topMaterials, setTopMaterials] = useState<any[]>([]);
   const [recentSales, setRecentSales] = useState<any[]>([]);
   const [stockAlerts, setStockAlerts] = useState<any[]>([]);
+  const [printers, setPrinters] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => { loadDashboardData(); }, []);
 
   const loadDashboardData = async () => {
     try {
-      const [overviewData, chartData, statusData, productsData, materialsData, salesData, alertsData] = await Promise.all([
+      const [overviewData, chartData, statusData, productsData, materialsData, salesData, alertsData, printersData] = await Promise.all([
         dashboardService.getOverview(),
         dashboardService.getRevenueChart(30),
         dashboardService.getSalesByStatus(),
@@ -93,6 +94,7 @@ export default function DashboardPage() {
         dashboardService.getTopMaterials(5),
         dashboardService.getRecentSales(8),
         dashboardService.getStockAlerts(),
+        dashboardService.getPrinters().catch(() => []), // Fail gracefully if HA API fails
       ]);
       setOverview(overviewData);
       setRevenueChart(chartData);
@@ -101,6 +103,7 @@ export default function DashboardPage() {
       setTopMaterials(materialsData);
       setRecentSales(salesData);
       setStockAlerts(alertsData);
+      setPrinters(printersData || []);
     } catch (err) {
       console.error('Error loading dashboard:', err);
     } finally {
@@ -135,12 +138,8 @@ export default function DashboardPage() {
 
   const totalStatusCount = salesStatus.reduce((s, x) => s + x.count, 0);
 
-  /* ── MOCK: PRINTERS (using production data that might exist) ──────────────── */
-  const mockPrinters = [
-    { name: 'Flashforge A5M', status: 'printing', file: 'suporte_celular.gcode', progress: 74, eta: '1h 23m' },
-    { name: 'Elegoo Saturn 3', status: 'idle',     file: '—',                    progress: 0,  eta: '—' },
-    { name: 'Creality K1',    status: 'offline',   file: '—',                    progress: 0,  eta: '—' },
-  ];
+  /* ── REAL PRINTER DATA FROM HOME ASSISTANT ─────────────────────────────────── */
+  // Used printers array instead of mockPrinters.
 
   const mockQueue = [
     { name: 'chaveiro_dragon.gcode', eta: '~2h' },
@@ -337,21 +336,23 @@ export default function DashboardPage() {
               <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Monitoramento em tempo real</p>
             </div>
           </div>
-          <div className="space-y-4">
-            {mockPrinters.map((printer, i) => {
-              const cfg = printerStatusConfig[printer.status];
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-1 gap-4">
+            {(printers && printers.length > 0 ? printers : [
+              { name: 'Buscando impressoras (Home Assistant)...', status: 'idle', file: '—', progress: 0, eta: '—' }
+            ]).map((printer: any, i: number) => {
+              const pcfg = printerStatusConfig[printer.status] || printerStatusConfig.idle;
               return (
-                <div key={i} className={`p-5 rounded-2xl border ${cfg.ring} ring-1 bg-white/2 hover:bg-white/4 transition-all duration-300`}>
+                <div key={i} className={`p-5 rounded-2xl border ${pcfg.ring} ring-1 bg-white/2 hover:bg-white/4 transition-all duration-300`}>
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <div className={`p-2 ${cfg.bg} rounded-xl`}>
-                        <Printer size={18} className={cfg.text} />
+                      <div className={`p-2 ${pcfg.bg} rounded-xl`}>
+                        <Printer size={18} className={pcfg.text} />
                       </div>
                       <div>
-                        <div className="font-black text-white tracking-tight">{printer.name}</div>
-                        <div className={`flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest mt-0.5 ${cfg.text}`}>
-                          <div className={`w-1.5 h-1.5 rounded-full ${cfg.dot} ${printer.status === 'printing' ? 'animate-pulse' : ''}`} />
-                          {cfg.label}
+                        <h4 className="font-black text-white">{printer.name}</h4>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <div className={`w-1.5 h-1.5 rounded-full ${pcfg.dot}`} />
+                          <span className={`text-[10px] font-bold uppercase tracking-widest ${pcfg.text}`}>{pcfg.label}</span>
                         </div>
                       </div>
                     </div>
