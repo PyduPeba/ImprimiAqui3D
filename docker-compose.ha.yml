@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  homeassistant:
+    image: "ghcr.io/home-assistant/home-assistant:stable"
+    container_name: imprimiaqui3d-homeassistant
+    restart: unless-stopped
+    privileged: true
+    network_mode: host
+    volumes:
+      - ./docker/homeassistant/config:/config
+      - /etc/localtime:/etc/localtime:ro
+      - /run/dbus:/run/dbus:ro
