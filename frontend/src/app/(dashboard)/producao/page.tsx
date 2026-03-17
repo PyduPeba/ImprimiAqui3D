@@ -279,7 +279,7 @@ export default function ProductionPage() {
 
         <div className="flex items-center gap-3">
           <button
-            onClick={loadPrinters}
+            onClick={loadData}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 border border-white/8 text-[10px] font-bold text-slate-400 hover:text-white hover:bg-white/10 transition-all uppercase tracking-widest"
           >
             <RefreshCw size={11} /> Sincronizar
