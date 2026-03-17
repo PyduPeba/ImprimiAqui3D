@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Mail, Lock, Loader2, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
+import { Mail, Lock, Loader2, Eye, EyeOff, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -24,6 +24,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   const {
     register,
@@ -40,6 +41,13 @@ export default function LoginPage() {
   const { login } = useAuth();
   
   const [branding, setBranding] = useState<{name?: string, logoUrl?: string}>({});
+  
+  const getImageUrl = (path: string | undefined) => {
+    if (!path) return '';
+    if (path.startsWith('http') || path.startsWith('data:')) return path;
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+    return `${baseUrl}${path}`.replace('/api/uploads', '/uploads');
+  };
 
   React.useEffect(() => {
     async function loadBranding() {
@@ -76,13 +84,17 @@ export default function LoginPage() {
     }
 
     try {
+      setLoginError(null);
       await login({
         email: data.email,
         password: data.password,
       });
     } catch (err: any) {
-      // Security: Do not log the error object as it may contain request credentials
-      // console.error('Login error:', err);
+      if (err.response?.status === 401 || err.response?.status === 404) {
+          setLoginError('Usuário ou senha pode estar errado. Tente novamente.');
+      } else {
+          setLoginError('Ocorreu um erro ao tentar fazer login. Verifique sua conexão.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -98,7 +110,7 @@ export default function LoginPage() {
         {/* Logo Section */}
         <div className="flex flex-col items-center mb-10">
           {branding.logoUrl ? (
-             <img src={branding.logoUrl} alt="Logo" className="h-24 object-contain mb-6 drop-shadow-2xl" />
+             <img src={getImageUrl(branding.logoUrl)} alt="Logo" className="h-24 object-contain mb-6 drop-shadow-2xl" />
           ) : (
             <div className="w-16 h-16 bg-emerald-500 rounded-2xl flex items-center justify-center text-white font-bold text-3xl shadow-lg mb-4 shadow-emerald-500/20">
                 I
@@ -116,6 +128,13 @@ export default function LoginPage() {
         {/* Login Card */}
         <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 p-8 rounded-3xl shadow-2xl">
           <h2 className="text-xl font-bold text-white mb-6">Bem-vindo de volta!</h2>
+          
+          {loginError && (
+              <div className="mb-6 bg-rose-500/10 border border-rose-500/20 text-rose-400 px-4 py-3 rounded-xl flex items-start gap-3 animate-in fade-in zoom-in-95 duration-300">
+                  <AlertCircle size={20} className="shrink-0 mt-0.5" />
+                  <p className="text-sm font-semibold">{loginError}</p>
+              </div>
+          )}
           
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             {/* Email Field */}
