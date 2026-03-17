@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PrintJob } from './entities/print-job.entity';
@@ -10,9 +10,12 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationType } from '../notifications/entities/notification.entity';
 import { User } from '../auth/entities/user.entity';
 import { UserRole } from '../auth/enums/user-role.enum';
+import { HomeAssistantService } from '../home-assistant/home-assistant.service';
 
 @Injectable()
 export class ProductionService {
+    private readonly logger = new Logger(ProductionService.name);
+
     constructor(
         @InjectRepository(PrintJob)
         private printJobRepository: Repository<PrintJob>,
@@ -22,7 +25,48 @@ export class ProductionService {
         private maintenanceLogRepository: Repository<MaintenanceLog>,
         private productionGateway: ProductionGateway,
         private notificationsService: NotificationsService,
+        private homeAssistantService: HomeAssistantService,
     ) { }
+
+    async syncWithHA() {
+        const telemetry = await this.homeAssistantService.getPrinters();
+        if (!telemetry || telemetry.length === 0) return;
+
+        const printers = await this.printerRepository.find();
+        const activeJobs = await this.printJobRepository.find({
+            where: [
+                { status: PrintStatus.PRINTING },
+                { status: PrintStatus.WAITING },
+                { status: PrintStatus.PAUSED }
+            ],
+            relations: ['printer']
+        });
+
+        for (const haPrinter of telemetry) {
+            // Match printer
+            const dbPrinter = printers.find(p => 
+                p.haEntityId === haPrinter.id || 
+                p.name.toLowerCase() === haPrinter.name.toLowerCase()
+            );
+
+            if (!dbPrinter) continue;
+
+            // Find current job for this printer
+            const job = activeJobs.find(j => j.printer?.id === dbPrinter.id);
+
+            if (haPrinter.status === 'printing') {
+                if (job && job.status !== PrintStatus.PRINTING) {
+                    await this.updateJobStatus(job.id, PrintStatus.PRINTING);
+                }
+            } else if (haPrinter.status === 'idle') {
+                if (job && job.status === PrintStatus.PRINTING) {
+                    // Only mark as completed if progress is high or HA says idle/completed
+                    // For now, let's be aggressive: if it was printing and now is idle, it finished.
+                    await this.updateJobStatus(job.id, PrintStatus.COMPLETED);
+                }
+            }
+        }
+    }
 
     async createJob(saleItemId: string, estimatedTime: number) {
         const job = this.printJobRepository.create({

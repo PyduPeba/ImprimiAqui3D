@@ -211,15 +211,21 @@ export default function ProductionPage() {
   const { socket, connected } = useSocket();
   const [activeTab, setActiveTab] = useState<Tab>(Tab.CONTROL);
   const [printers, setPrinters] = useState<LivePrinter[]>([]);
-  const [jobs] = useState<PrintJob[]>(MOCK_QUEUE);
+  const [jobs, setJobs] = useState<PrintJob[]>([]);
   const [alerts] = useState<PrintAlert[]>(MOCK_ALERTS);
   const [lastSync, setLastSync] = useState<string>('—');
   const [loading, setLoading] = useState(true);
 
-  const loadPrinters = useCallback(async () => {
+  const loadData = useCallback(async () => {
     try {
-      const data = await productionService.getPrintersTelemetry();
-      setPrinters(data);
+      const [telemetry, queue] = await Promise.all([
+        productionService.getPrintersTelemetry(),
+        productionService.getQueue()
+      ]);
+      
+      // Map backend printers/jobs if needed or just use as is
+      setPrinters(telemetry);
+      setJobs(queue);
       setLastSync(new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
     } catch {
       // silent fail — keep stale data
@@ -229,16 +235,21 @@ export default function ProductionPage() {
   }, []);
 
   useEffect(() => {
-    loadPrinters();
-    const interval = setInterval(loadPrinters, 5000);
+    loadData();
+    const interval = setInterval(loadData, 5000);
     return () => clearInterval(interval);
-  }, [loadPrinters]);
+  }, [loadData]);
 
   useEffect(() => {
     if (!socket) return;
-    socket.on('job:status-changed', () => loadPrinters());
-    return () => { socket.off('job:status-changed'); };
-  }, [socket, loadPrinters]);
+    const handleSync = () => loadData();
+    socket.on('job:status-changed', handleSync);
+    socket.on('job:created', handleSync);
+    return () => { 
+      socket.off('job:status-changed', handleSync); 
+      socket.off('job:created', handleSync);
+    };
+  }, [socket, loadData]);
 
   // KPIs
   const activePrinters = printers.filter(p => p.status === 'printing').length;

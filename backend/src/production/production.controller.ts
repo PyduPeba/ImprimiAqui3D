@@ -14,7 +14,8 @@ export class ProductionController {
     }
 
     @Get('telemetry')
-    getPrintersTelemetry() {
+    async getPrintersTelemetry() {
+        await this.productionService.syncWithHA();
         return this.homeAssistantService.getPrinters();
     }
 

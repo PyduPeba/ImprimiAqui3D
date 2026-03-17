@@ -16,6 +16,9 @@ export class Printer {
     name: string;
 
     @Column({ nullable: true })
+    haEntityId: string;
+
+    @Column({ nullable: true })
     model: string;
 
     @Column({
