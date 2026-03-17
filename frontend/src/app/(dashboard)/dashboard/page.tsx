@@ -126,11 +126,11 @@ export default function DashboardPage() {
   const maxProductQty = Math.max(...topProducts.map(p => p.quantity), 1);
 
   const statusColors: any = {
-    QUOTE:       { bg: 'bg-blue-500/10',    text: 'text-blue-400',    bar: 'bg-blue-400',    label: 'Orçamentos',         dot: '#60a5fa' },
-    PAID:        { bg: 'bg-violet-500/10',  text: 'text-violet-400',  bar: 'bg-violet-400',  label: 'Pagos',              dot: '#a78bfa' },
-    IN_PROGRESS: { bg: 'bg-yellow-500/10',  text: 'text-yellow-400',  bar: 'bg-yellow-400',  label: 'Em Produção',        dot: '#facc15' },
-    COMPLETED:   { bg: 'bg-emerald-500/10', text: 'text-emerald-400', bar: 'bg-emerald-400', label: 'Concluídos',         dot: '#34d399' },
-    CANCELLED:   { bg: 'bg-rose-500/10',    text: 'text-rose-400',    bar: 'bg-rose-400',    label: 'Cancelados',         dot: '#f87171' },
+    QUOTE:       { bg: 'bg-blue-500/10',    label: 'Orçamentos',  dot: '#60a5fa', color: '#60a5fa' },
+    PAID:        { bg: 'bg-violet-500/10',  label: 'Pagos',       dot: '#a78bfa', color: '#a78bfa' },
+    IN_PROGRESS: { bg: 'bg-yellow-500/10',  label: 'Em Produção', dot: '#facc15', color: '#facc15' },
+    COMPLETED:   { bg: 'bg-emerald-500/10', label: 'Concluídos',  dot: '#34d399', color: '#34d399' },
+    CANCELLED:   { bg: 'bg-rose-500/10',    label: 'Cancelados',  dot: '#f87171', color: '#f87171' },
   };
 
   const totalStatusCount = salesStatus.reduce((s, x) => s + x.count, 0);
@@ -298,7 +298,7 @@ export default function DashboardPage() {
           <div className="space-y-5">
             {salesStatus.map((s) => {
               const pct = totalStatusCount > 0 ? ((s.count / totalStatusCount) * 100).toFixed(0) : '0';
-              const cfg = statusColors[s.status] || { bg: 'bg-slate-500/10', text: 'text-slate-400', bar: 'bg-slate-400', label: s.status, dot: '#94a3b8' };
+              const cfg = statusColors[s.status] || { bg: 'bg-slate-500/10', label: s.status, dot: '#94a3b8', color: '#94a3b8' };
               return (
                 <div key={s.status}>
                   <div className="flex justify-between items-center mb-1.5">
@@ -307,12 +307,12 @@ export default function DashboardPage() {
                       <span className="text-xs font-bold text-slate-300">{cfg.label}</span>
                     </div>
                     <div className="flex items-baseline gap-1">
-                      <span className={`text-sm font-black ${cfg.text}`}>{s.count}</span>
+                      <span className="text-sm font-black" style={{ color: cfg.color }}>{s.count}</span>
                       <span className="text-[9px] text-slate-500 font-bold">{pct}%</span>
                     </div>
                   </div>
                   <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                    <div className={`h-full rounded-full transition-all duration-1000 ${cfg.bar}`} style={{ width: `${pct}%` }} />
+                    <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${pct}%`, backgroundColor: cfg.color }} />
                   </div>
                 </div>
               );
