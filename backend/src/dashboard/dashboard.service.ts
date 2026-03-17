@@ -95,30 +95,37 @@ export class DashboardService {
         const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
 
         const sales = await this.saleRepository.find({
-            where: { createdAt: MoreThan(startDate) },
+            where: { 
+                createdAt: MoreThan(startDate),
+                status: In([SaleStatus.CONFIRMED, SaleStatus.IN_PRODUCTION, SaleStatus.COMPLETED])
+            },
             order: { createdAt: 'ASC' },
         });
 
-        // Group by day
-        const revenueByDay = new Map<string, number>();
+        // Group by day - Map date to object
+        const statsByDay = new Map<string, { revenue: number, count: number }>();
 
         // Initialize all days with 0
         for (let i = 0; i < days; i++) {
             const date = new Date(now.getTime() - (days - i - 1) * 24 * 60 * 60 * 1000);
             const dateStr = date.toISOString().split('T')[0];
-            revenueByDay.set(dateStr, 0);
+            statsByDay.set(dateStr, { revenue: 0, count: 0 });
         }
 
         // Add sales data
         sales.forEach(sale => {
             const dateStr = sale.createdAt.toISOString().split('T')[0];
-            const current = revenueByDay.get(dateStr) || 0;
-            revenueByDay.set(dateStr, current + Number(sale.total));
+            const current = statsByDay.get(dateStr) || { revenue: 0, count: 0 };
+            statsByDay.set(dateStr, {
+                revenue: current.revenue + Number(sale.total),
+                count: current.count + 1
+            });
         });
 
-        return Array.from(revenueByDay.entries()).map(([date, revenue]) => ({
+        return Array.from(statsByDay.entries()).map(([date, stats]) => ({
             date,
-            revenue: Math.round(revenue * 100) / 100,
+            revenue: Math.round(stats.revenue * 100) / 100,
+            count: stats.count,
         }));
     }
 
