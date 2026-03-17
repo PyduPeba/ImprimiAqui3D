@@ -19,6 +19,11 @@ export class ProductionController {
         return this.homeAssistantService.getPrinters();
     }
 
+    @Get('queue')
+    getQueue() {
+        return this.productionService.getQueue();
+    }
+
     // Maintenance Logs (Moved up for clarity)
     @Get('maintenance')
     findAllMaintenanceLogs() {

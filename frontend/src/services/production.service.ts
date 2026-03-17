@@ -9,6 +9,10 @@ export const productionService = {
         const response = await api.get('/production/telemetry');
         return response.data;
     },
+    async getQueue() {
+        const response = await api.get('/production/queue');
+        return response.data;
+    },
     async createPrinter(data: any) {
         const response = await api.post('/production/printers', data);
         return response.data;
