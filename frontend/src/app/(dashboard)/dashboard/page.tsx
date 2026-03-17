@@ -307,7 +307,7 @@ export default function DashboardPage() {
                       <span className="text-xs font-bold text-slate-300">{cfg.label}</span>
                     </div>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-sm font-black text-white">{s.count}</span>
+                      <span className={`text-sm font-black ${cfg.text}`}>{s.count}</span>
                       <span className="text-[9px] text-slate-500 font-bold">{pct}%</span>
                     </div>
                   </div>
