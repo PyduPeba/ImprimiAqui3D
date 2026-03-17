@@ -18,6 +18,7 @@ import { toast } from 'react-hot-toast';
 
 export function MaintenanceTab() {
     const [printers, setPrinters] = useState<any[]>([]);
+    const [telemetry, setTelemetry] = useState<any[]>([]);
     const [logs, setLogs] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
@@ -39,12 +40,14 @@ export function MaintenanceTab() {
     const loadData = async () => {
         setLoading(true);
         try {
-            const [printersData, logsData] = await Promise.all([
+            const [printersData, logsData, telemetryData] = await Promise.all([
                 productionService.getPrinters(),
-                productionService.getMaintenanceLogs()
+                productionService.getMaintenanceLogs(),
+                productionService.getPrintersTelemetry()
             ]);
             setPrinters(printersData);
             setLogs(logsData);
+            setTelemetry(telemetryData);
         } catch (error) {
             console.error(error);
             toast.error('Erro ao carregar dados de manutenção');
@@ -96,15 +99,31 @@ export function MaintenanceTab() {
                     const isUrgent = percent >= 90;
                     const isWarning = percent >= 75 && percent < 90;
 
+                    // Correlacionar com telemetria do Home Assistant
+                    const liveStatus = telemetry.find(t => 
+                        t.name.toLowerCase().includes(printer.name.toLowerCase()) ||
+                        printer.name.toLowerCase().includes(t.name.toLowerCase())
+                    );
+
                     return (
                         <div key={printer.id} className={`card ${isUrgent ? 'border-rose-200 bg-rose-50/30' : 'bg-white'}`}>
                             <div className="flex justify-between items-start mb-6">
                                 <div className="flex items-center gap-4">
-                                    <div className={`p-3 rounded-2xl ${isUrgent ? 'bg-rose-100 text-rose-600' : isWarning ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                                    <div className={`p-3 rounded-2xl relative ${isUrgent ? 'bg-rose-100 text-rose-600' : isWarning ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600'}`}>
                                         <Wrench size={24} />
+                                        {liveStatus && (
+                                            <div className={`absolute -top-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${liveStatus.status === 'printing' ? 'bg-emerald-500 animate-pulse' : liveStatus.status === 'idle' ? 'bg-emerald-400' : 'bg-rose-500'}`} />
+                                        )}
                                     </div>
                                     <div>
-                                        <h3 className="font-black text-slate-900 text-lg uppercase tracking-tight">{printer.name}</h3>
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="font-black text-slate-900 text-lg uppercase tracking-tight">{printer.name}</h3>
+                                            {liveStatus && (
+                                                <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md ${liveStatus.status === 'printing' ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                                                    {liveStatus.status === 'printing' ? 'LIVE' : 'IDLE'}
+                                                </span>
+                                            )}
+                                        </div>
                                         <p className="text-xs text-slate-500 font-bold flex items-center gap-1 group">
                                              Total: {(printer.totalPrintTimeMinutes / 60).toFixed(1)}h acumuladas
                                         </p>

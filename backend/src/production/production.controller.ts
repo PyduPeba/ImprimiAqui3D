@@ -1,12 +1,21 @@
 import { Controller, Get, Post, Body, Param, Put, Delete, Logger } from '@nestjs/common';
 import { ProductionService } from './production.service';
+import { HomeAssistantService } from '../home-assistant/home-assistant.service';
 
 @Controller('production')
 export class ProductionController {
     private readonly logger = new Logger(ProductionController.name);
 
-    constructor(private readonly productionService: ProductionService) {
+    constructor(
+        private readonly productionService: ProductionService,
+        private readonly homeAssistantService: HomeAssistantService
+    ) {
         this.logger.log('ProductionController initialized');
+    }
+
+    @Get('telemetry')
+    getPrintersTelemetry() {
+        return this.homeAssistantService.getPrinters();
     }
 
     // Maintenance Logs (Moved up for clarity)

@@ -12,10 +12,37 @@ import {
   Printer as PrinterIcon,
   ArrowRight,
   Settings as SettingsIcon,
-  Wrench
+  Wrench,
+  XCircle,
+  Cpu
 } from 'lucide-react';
 import { useSocket } from '@/hooks/useSocket';
 import { MaintenanceTab } from './tabs/MaintenanceTab';
+import { productionService } from '@/services/production.service';
+
+const printerStatusConfig: any = {
+  printing: { 
+    label: 'Imprimindo', 
+    text: 'text-emerald-500', 
+    bg: 'bg-emerald-500/10', 
+    dot: 'bg-emerald-500',
+    ring: 'border-emerald-500/20'
+  },
+  idle: { 
+    label: 'Em Espera', 
+    text: 'text-slate-400', 
+    bg: 'bg-slate-400/10', 
+    dot: 'bg-slate-400',
+    ring: 'border-white/5'
+  },
+  offline: { 
+    label: 'Offline', 
+    text: 'text-rose-500', 
+    bg: 'bg-rose-500/10', 
+    dot: 'bg-rose-500', 
+    ring: 'border-rose-500/20'
+  }
+};
 
 const statusColors = {
   WAITING: 'bg-slate-100 text-slate-500 border-slate-200',
@@ -33,6 +60,7 @@ enum ProducingTab {
 export default function ProductionPage() {
   const { socket, connected } = useSocket();
   const [activeTab, setActiveTab] = useState<ProducingTab>(ProducingTab.QUEUE);
+  const [printers, setPrinters] = useState<any[]>([]);
   const [jobs, setJobs] = useState<any[]>([
     { id: '1', name: 'Capacet_IronMan_V2.stl', status: 'PRINTING', printer: 'Bambu Lab X1-C', progress: 65, timeRemaining: '2h 15m' },
     { id: '2', name: 'Suporte_Headset.stl', status: 'WAITING', printer: 'Ender 3 S1', progress: 0, timeRemaining: '45m' },
@@ -40,6 +68,9 @@ export default function ProductionPage() {
   ]);
 
   useEffect(() => {
+    loadPrinters();
+    const interval = setInterval(loadPrinters, 5000); // 5s sync
+
     if (socket) {
       socket.on('job:status-changed', (updatedJob: any) => {
         setJobs(prevJobs => prevJobs.map(job => 
@@ -53,12 +84,22 @@ export default function ProductionPage() {
     }
     
     return () => {
+      clearInterval(interval);
       if (socket) {
         socket.off('job:status-changed');
         socket.off('job:created');
       }
     };
   }, [socket]);
+
+  const loadPrinters = async () => {
+    try {
+      const data = await productionService.getPrintersTelemetry();
+      setPrinters(data);
+    } catch (err) {
+      console.error('Error fetching printers telemetry:', err);
+    }
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -93,6 +134,52 @@ export default function ProductionPage() {
 
       {activeTab === ProducingTab.QUEUE ? (
         <>
+          {/* Real-time Fleet Status */}
+          <div className="glass-card !p-7 border-white/5 bg-slate-900/5 backdrop-blur-sm mb-8">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-yellow-500/10 rounded-xl text-yellow-500"><Cpu size={18} /></div>
+              <div>
+                <h2 className="text-lg font-black text-slate-900 tracking-tight">Status das Máquinas</h2>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Sincronizado com Home Assistant</p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {(printers.length > 0 ? printers : [
+                { name: 'Buscando...', status: 'idle' }
+              ]).map((printer, i) => {
+                const pcfg = printerStatusConfig[printer.status] || printerStatusConfig.idle;
+                return (
+                  <div key={i} className={`p-4 rounded-2xl border ${pcfg.ring} bg-white shadow-sm hover:shadow-md transition-all`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 ${pcfg.bg} rounded-xl`}>
+                        <PrinterIcon size={18} className={pcfg.text} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="font-bold text-slate-900 text-sm truncate">{printer.name}</h4>
+                        <div className="flex items-center gap-1.5">
+                          <div className={`w-1.5 h-1.5 rounded-full ${pcfg.dot}`} />
+                          <span className={`text-[10px] font-black uppercase tracking-widest ${pcfg.text}`}>{pcfg.label}</span>
+                        </div>
+                      </div>
+                    </div>
+                    {printer.status === 'printing' && (
+                      <div className="mt-3 pt-3 border-t border-slate-50">
+                        <div className="flex justify-between text-[10px] font-bold text-slate-400 mb-1">
+                          <span className="truncate max-w-[100px]">{printer.file}</span>
+                          <span className="text-emerald-500">{printer.progress}%</span>
+                        </div>
+                        <div className="w-full bg-slate-100 rounded-full h-1 overflow-hidden">
+                          <div className="h-full bg-emerald-500 transition-all" style={{ width: `${printer.progress}%` }} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 gap-4">
             {jobs.map((job) => (
               <div key={job.id} className="card group hover:border-emerald-500/30 transition-all">

@@ -7,11 +7,13 @@ import { Printer } from './entities/printer.entity';
 import { PrintJob } from './entities/print-job.entity';
 import { MaintenanceLog } from './entities/maintenance-log.entity';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { HomeAssistantModule } from '../home-assistant/home-assistant.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Printer, PrintJob, MaintenanceLog]),
     NotificationsModule,
+    HomeAssistantModule,
   ],
   providers: [ProductionService, ProductionGateway],
   controllers: [ProductionController],
