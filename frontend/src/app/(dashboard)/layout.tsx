@@ -14,7 +14,7 @@ export default function DashboardLayout({
   const userName = user?.name || 'Sem Nome';
   const initials = userName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
   return (
-    <div className="min-h-screen flex bg-[#0f172a] text-white">
+    <div className="h-screen overflow-hidden flex bg-[#0f172a] text-white">
       <Sidebar />
       <div className="flex-1 flex flex-col pl-64 transition-all duration-300">
         <header className="h-20 bg-[#0f172a]/40 backdrop-blur-xl border-b border-white/5 px-10 flex items-center justify-between sticky top-0 z-40">

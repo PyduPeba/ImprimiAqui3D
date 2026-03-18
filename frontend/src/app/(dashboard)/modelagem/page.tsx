@@ -385,7 +385,7 @@ export default function ModelagemPage() {
           return (
             <div
               key={col.id}
-              className="flex-shrink-0 w-[280px] flex flex-col"
+              className="flex-shrink-0 w-[280px] flex flex-col h-full"
               onDragOver={(e) => handleDragOver(e, col.id)}
               onDrop={(e) => handleDrop(e, col.id)}
             >
@@ -400,7 +400,7 @@ export default function ModelagemPage() {
               </div>
 
               {/* Drop zone */}
-              <div className={`flex-1 space-y-2.5 min-h-[120px] rounded-xl transition-all duration-200 p-1 ${isOver ? 'bg-white/5 border border-dashed border-white/20' : ''}`}>
+              <div className={`flex-1 overflow-y-auto flex flex-col gap-2.5 min-h-[80px] rounded-xl transition-all duration-200 p-1 ${isOver ? 'bg-white/5 border border-dashed border-white/20' : ''}`}>
                 {items.map((req) => (
                   <KanbanCard
                     key={req.id}
