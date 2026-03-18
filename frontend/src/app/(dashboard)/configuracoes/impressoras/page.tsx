@@ -25,6 +25,7 @@ export default function PrintersConfigPage() {
   const [formData, setFormData] = useState({
     id: null as string | null,
     name: '',
+    haEntityId: '',
     brand: '',
     model: '',
     acquisitionValue: 0,
@@ -74,6 +75,7 @@ export default function PrintersConfigPage() {
       setFormData({
         id: printer.id,
         name: printer.name,
+        haEntityId: printer.haEntityId || '',
         brand: printer.brand || '',
         model: printer.model || '',
         acquisitionValue: Number(printer.acquisitionValue),
@@ -90,6 +92,7 @@ export default function PrintersConfigPage() {
       setFormData({
         id: null,
         name: '',
+        haEntityId: '',
         brand: '',
         model: '',
         acquisitionValue: 0,
@@ -247,9 +250,15 @@ export default function PrintersConfigPage() {
                     <span className="w-1 h-1 rounded-full bg-emerald-500" /> Identificação Técnica
                   </h4>
                   <div className="space-y-4">
-                    <div className="group/input">
-                      <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Nome Comercial</label>
-                      <input type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="glass-input !bg-white/3 w-full font-black text-sm" placeholder="Ex: Ender 3 S1 Pro" />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="group/input">
+                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Nome Comercial</label>
+                        <input type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="glass-input !bg-white/3 w-full font-black text-sm" placeholder="Ex: Ender 3 S1 Pro" />
+                      </div>
+                      <div className="group/input">
+                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">ID Home Assistant (Opcional)</label>
+                        <input type="text" value={formData.haEntityId} onChange={(e) => setFormData({...formData, haEntityId: e.target.value})} className="glass-input !bg-white/3 w-full font-black text-sm text-emerald-400" placeholder="Ex: ad5x ou centauri" />
+                      </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="group/input">
