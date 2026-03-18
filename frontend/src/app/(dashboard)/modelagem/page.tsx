@@ -444,7 +444,11 @@ export default function ModelagemPage() {
                   Etapa {formStep + 1} de {FORM_STEPS.length} — {FORM_STEPS[formStep]}
                 </p>
               </div>
-              <button onClick={() => { setShowModal(false); resetForm(); }} className="p-2 text-slate-500 hover:text-white bg-white/5 rounded-xl transition-colors">
+              <button
+                onClick={() => { setShowModal(false); resetForm(); }}
+                className="flex items-center gap-2 p-2 px-3 hover:bg-white/10 rounded-xl text-slate-400 hover:text-white transition-all group"
+              >
+                <span className="text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Sair</span>
                 <X size={18} />
               </button>
             </div>

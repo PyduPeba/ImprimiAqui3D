@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
     X, Send, Paperclip, User, Calendar,
     CheckCircle2, MessageSquare,
-    FileText, Download, Upload,
+    FileText, Download, Upload, Trash2,
     Image as ImageIcon, AlertTriangle, Clock, ArrowRight,
     Layers, RefreshCw, Eye, BarChart3, Archive,
 } from 'lucide-react';
@@ -63,6 +63,18 @@ export default function ModelingDetails({ request, onClose, onUpdate }: Modeling
     const [previewImage, setPreviewImage] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleDeleteAttachment = async (attachmentId: string) => {
+        if (!window.confirm('Tem certeza que deseja excluir este arquivo?')) return;
+        try {
+            await modelingService.deleteAttachment(attachmentId);
+            toast.success('Arquivo excluído com sucesso');
+            onUpdate(); // Refresh the data
+        } catch (error) {
+            console.error('Error deleting attachment:', error);
+            toast.error('Erro ao excluir arquivo');
+        }
+    };
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -187,9 +199,10 @@ export default function ModelingDetails({ request, onClose, onUpdate }: Modeling
                     </div>
                     <button
                         onClick={onClose}
-                        className="p-2 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white rounded-xl transition-colors shrink-0"
+                        className="flex items-center gap-2 p-2 px-3 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white rounded-xl transition-colors shrink-0 border border-white/5 group"
                     >
-                        <X size={20} />
+                        <span className="text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Sair</span>
+                        <X size={18} />
                     </button>
                 </div>
 
@@ -288,7 +301,11 @@ export default function ModelingDetails({ request, onClose, onUpdate }: Modeling
                                         </div>
                                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                             {isImage(att.filename) && (
-                                                <button className="p-1 text-slate-500 hover:text-indigo-400 rounded-lg transition-colors" title="Visualizar">
+                                                <button 
+                                                    onClick={() => setPreviewImage(att.url)}
+                                                    className="p-1 text-slate-500 hover:text-indigo-400 rounded-lg transition-colors" 
+                                                    title="Visualizar"
+                                                >
                                                     <ImageIcon size={13} />
                                                 </button>
                                             )}
@@ -303,6 +320,13 @@ export default function ModelingDetails({ request, onClose, onUpdate }: Modeling
                                             >
                                                 <Download size={13} />
                                             </a>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleDeleteAttachment(att.id); }}
+                                                className="p-1 text-slate-500 hover:text-rose-500 rounded-lg transition-colors"
+                                                title="Excluir"
+                                            >
+                                                <Trash2 size={13} />
+                                            </button>
                                         </div>
                                     </div>
                                 ))}
