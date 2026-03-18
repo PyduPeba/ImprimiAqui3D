@@ -17,6 +17,10 @@ export const productionService = {
         const response = await api.post(`/production/printers/${printerId}/command`, { command });
         return response.data;
     },
+    async getProductionAlerts() {
+        const response = await api.get('/production/alerts');
+        return response.data;
+    },
     async createPrinter(data: any) {
         const response = await api.post('/production/printers', data);
         return response.data;

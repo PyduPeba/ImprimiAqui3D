@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Body, Param, Put, Delete, Logger } from '@nestjs/common';
 import { ProductionService } from './production.service';
 import { HomeAssistantService } from '../home-assistant/home-assistant.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Controller('production')
 export class ProductionController {
@@ -8,7 +9,8 @@ export class ProductionController {
 
     constructor(
         private readonly productionService: ProductionService,
-        private readonly homeAssistantService: HomeAssistantService
+        private readonly homeAssistantService: HomeAssistantService,
+        private readonly notificationsService: NotificationsService,
     ) {
         this.logger.log('ProductionController initialized');
     }
@@ -22,6 +24,11 @@ export class ProductionController {
     @Get('queue')
     getQueue() {
         return this.productionService.getQueue();
+    }
+
+    @Get('alerts')
+    async getProductionAlerts() {
+        return this.notificationsService.findProductionAlerts(10);
     }
 
     // Maintenance Logs (Moved up for clarity)

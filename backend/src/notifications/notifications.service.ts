@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Notification, NotificationType } from './entities/notification.entity';
+import { In } from 'typeorm';
 
 @Injectable()
 export class NotificationsService {
@@ -55,5 +56,14 @@ export class NotificationsService {
             .execute();
 
         return { success: true };
+    }
+
+    async findProductionAlerts(limit = 10) {
+        return this.notificationRepository.find({
+            where: { type: NotificationType.PRODUCTION },
+            order: { createdAt: 'DESC' },
+            take: limit,
+            relations: ['user'],
+        });
     }
 }

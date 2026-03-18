@@ -56,6 +56,7 @@ interface PrintAlert {
   message: string;
   printer?: string;
   time: string;
+  read: boolean;
 }
 
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -110,17 +111,24 @@ const ALERT_CFG: Record<AlertSeverity, { icon: React.ElementType; border: string
 
 enum Tab { CONTROL = 'CONTROL', MAINTENANCE = 'MAINTENANCE' }
 
-// ─── Mock data (will be replaced by live data when the printer is active) ─────
-const MOCK_ALERTS: PrintAlert[] = [
-  { id: '1', severity: 'warning', title: 'Falta de Filamento', message: 'Bambu Lab X1-C parou por falta de PLA Gray — verifique o carretel.', printer: 'Bambu Lab X1-C', time: '5min atrás' },
-  { id: '2', severity: 'info', title: 'Impressão concluída', message: 'Case_iPhone_15.stl finalizada com sucesso na Ender 3 S1.', printer: 'Ender 3 S1', time: '22min atrás' },
-];
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function mapAlertSeverity(title: string): AlertSeverity {
+  const t = title.toLowerCase();
+  if (t.includes('falha') || t.includes('erro') || t.includes('crítico')) return 'critical';
+  if (t.includes('manutenção') || t.includes('filamento') || t.includes('aviso')) return 'warning';
+  return 'info';
+}
 
-const MOCK_QUEUE: PrintJob[] = [
-  { id: '1', name: 'Capacete_IronMan_V2.stl', status: 'PRINTING', printer: 'Bambu Lab X1-C', progress: 65, timeRemaining: '2h 15m' },
-  { id: '2', name: 'Suporte_Headset.stl', status: 'WAITING', printer: 'Ender 3 S1', progress: 0, timeRemaining: '45m' },
-  { id: '3', name: 'Vaso_Geométrico.stl', status: 'PAUSED', printer: 'Bambu Lab X1-C', progress: 12, timeRemaining: '8h 30m' },
-];
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'agora';
+  if (mins < 60) return `${mins}min atrás`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h atrás`;
+  return `${Math.floor(hrs / 24)}d atrás`;
+}
+
 
 // ────────────────────────────────────────────────────────────────────────────────
 // Printer Card
@@ -238,16 +246,17 @@ export default function ProductionPage() {
   const [activeTab, setActiveTab] = useState<Tab>(Tab.CONTROL);
   const [printers, setPrinters] = useState<LivePrinter[]>([]);
   const [jobs, setJobs] = useState<PrintJob[]>([]);
-  const [alerts] = useState<PrintAlert[]>(MOCK_ALERTS);
+  const [alerts, setAlerts] = useState<PrintAlert[]>([]);
   const [lastSync, setLastSync] = useState<string>('—');
   const [loading, setLoading] = useState(true);
 
   const loadData = useCallback(async () => {
     try {
-      const [telemetry, queue, dbPrinters] = await Promise.all([
+      const [telemetry, queue, dbPrinters, rawAlerts] = await Promise.all([
         productionService.getPrintersTelemetry(),
         productionService.getQueue(),
         productionService.getPrinters(),
+        productionService.getProductionAlerts(),
       ]);
       
       // Correlate HA telemetry with DB printers to get DB IDs for commands
@@ -270,6 +279,18 @@ export default function ProductionPage() {
 
       setPrinters(enriched);
       setJobs(queue);
+
+      // Map backend notifications → PrintAlert format
+      const mappedAlerts: PrintAlert[] = (rawAlerts || []).map((n: any) => ({
+        id: n.id,
+        severity: mapAlertSeverity(n.title),
+        title: n.title,
+        message: n.message,
+        time: timeAgo(n.createdAt),
+        read: n.read,
+      }));
+      setAlerts(mappedAlerts);
+
       setLastSync(new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
     } catch {
       // silent fail — keep stale data
@@ -299,7 +320,7 @@ export default function ProductionPage() {
   const activePrinters = printers.filter(p => p.status === 'printing').length;
   const pausedPrinters = printers.filter(p => p.status === 'paused').length;
   const offlinePrinters = printers.filter(p => p.status === 'offline').length;
-  const alertCount = alerts.filter(a => a.severity === 'critical').length;
+  const alertCount = alerts.filter(a => !a.read).length;
 
   const kpis = [
     { label: 'Ativas', value: activePrinters, icon: Flame, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
@@ -498,25 +519,29 @@ export default function ProductionPage() {
               </div>
 
               <div className="divide-y divide-white/4">
-                {alerts.map((alert) => {
+                {alerts.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10 text-slate-600">
+                    <CheckCircle2 size={22} className="mb-2 text-emerald-700/40" />
+                    <p className="text-[10px] font-bold uppercase tracking-widest">Nenhum alerta registrado</p>
+                  </div>
+                ) : alerts.map((alert) => {
                   const acfg = ALERT_CFG[alert.severity];
                   const Icon = acfg.icon;
                   return (
-                    <div key={alert.id} className={`px-5 py-4 border-l-2 ${acfg.border} ${acfg.bg} hover:bg-white/3 transition-colors`}>
+                    <div key={alert.id} className={`px-5 py-4 border-l-2 ${acfg.border} ${acfg.bg} hover:bg-white/3 transition-colors ${alert.read ? 'opacity-60' : ''}`}>
                       <div className="flex items-start gap-3">
                         <Icon size={14} className={`mt-0.5 shrink-0 ${acfg.title}`} />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center justify-between gap-2">
                             <p className={`text-xs font-bold ${acfg.title} truncate`}>{alert.title}</p>
-                            <span className="text-[8px] text-slate-600 font-medium shrink-0">{alert.time}</span>
+                            <div className="flex items-center gap-2 shrink-0">
+                              {!alert.read && (
+                                <span className="w-1.5 h-1.5 bg-rose-400 rounded-full animate-pulse" title="Não lida" />
+                              )}
+                              <span className="text-[8px] text-slate-600 font-medium">{alert.time}</span>
+                            </div>
                           </div>
                           <p className="text-[10px] text-slate-500 font-medium mt-0.5 leading-relaxed">{alert.message}</p>
-                          {alert.printer && (
-                            <div className="flex items-center gap-1 mt-2">
-                              <PrinterIcon size={9} className="text-slate-600" />
-                              <span className="text-[9px] text-slate-600 font-medium">{alert.printer}</span>
-                            </div>
-                          )}
                         </div>
                       </div>
                     </div>
