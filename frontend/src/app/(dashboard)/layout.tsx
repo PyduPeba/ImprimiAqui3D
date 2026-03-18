@@ -43,7 +43,7 @@ export default function DashboardLayout({
         </header>
         <main className="flex-1 overflow-hidden flex flex-col relative">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(16,185,129,0.05)_0%,transparent_50%)] pointer-events-none z-0" />
-          <div className="flex-1 flex flex-col overflow-hidden px-8 py-6 relative z-10">
+          <div className="flex-1 flex flex-col overflow-y-auto px-8 py-6 relative z-10 custom-scrollbar">
             {children}
           </div>
         </main>
