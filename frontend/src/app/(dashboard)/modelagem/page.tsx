@@ -284,6 +284,18 @@ export default function ModelagemPage() {
     return true;
   });
 
+  // Add Escape listener for details
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSelectedRequestId(null);
+        setShowModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, []);
+
   const getColumnItems = (status: string) => filtered.filter((r) => r.status === status);
   const overdueCount = requests.filter((r) => isOverdue(r.deadline) && r.status !== ModelingStatus.APPROVED && r.status !== ModelingStatus.ARCHIVED).length;
   const activeRequest = requests.find((r) => r.id === selectedRequestId);
@@ -640,13 +652,25 @@ export default function ModelagemPage() {
         </div>
       )}
 
-      {/* ── Details Drawer ─────────────────────────────────────── */}
-      {activeRequest && (
-        <ModelingDetails
-          request={activeRequest}
-          onClose={() => setSelectedRequestId(null)}
-          onUpdate={loadRequests}
-        />
+      {/* ── Details Panel (Slide-over) ────────────────────────── */}
+      {selectedRequestId && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          {/* Enhanced backdrop with hover hint */}
+          <div
+            className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm cursor-pointer group/backdrop transition-all duration-500"
+            onClick={() => setSelectedRequestId(null)}
+          >
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover/backdrop:opacity-100 transition-opacity bg-white/10 px-4 py-2 rounded-full border border-white/10 text-white font-black text-[10px] uppercase tracking-[0.2em]">
+              Clique fora para fechar
+            </div>
+          </div>
+
+          <ModelingDetails
+            request={activeRequest}
+            onClose={() => setSelectedRequestId(null)}
+            onUpdate={loadRequests}
+          />
+        </div>
       )}
     </div>
   );

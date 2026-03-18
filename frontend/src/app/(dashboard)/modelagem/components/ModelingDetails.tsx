@@ -170,6 +170,16 @@ export default function ModelingDetails({ request, onClose, onUpdate }: Modeling
             >
                 {/* ── Header ─────────────────────────────── */}
                 <div className="px-7 py-5 border-b border-white/6 flex items-start justify-between gap-4 shrink-0">
+                    {/* Floating Close Button - Extreme Prominence */}
+                    <button
+                        onClick={onClose}
+                        className="absolute -left-12 top-4 p-3 bg-rose-500 hover:bg-rose-600 text-white rounded-2xl shadow-2xl shadow-rose-500/40 transition-all hover:scale-110 active:scale-95 group flex items-center gap-2"
+                        title="Fechar Painel (Esc)"
+                    >
+                        <X size={24} />
+                        <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-300 font-black uppercase text-[10px] tracking-widest">Fechar</span>
+                    </button>
+
                     <div className="min-w-0 flex-1">
                         <h2 className="text-xl font-black text-white leading-tight truncate">
                             {request.title}
@@ -197,12 +207,12 @@ export default function ModelingDetails({ request, onClose, onUpdate }: Modeling
                             )}
                         </div>
                     </div>
+                    {/* Secondary visible X inside for small screens */}
                     <button
                         onClick={onClose}
-                        className="flex items-center gap-2 p-2 px-3 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white rounded-xl transition-colors shrink-0 border border-white/5 group"
+                        className="lg:hidden p-2 bg-white/5 text-slate-400 rounded-xl"
                     >
-                        <span className="text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Sair</span>
-                        <X size={18} />
+                        <X size={20} />
                     </button>
                 </div>
 
