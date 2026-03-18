@@ -101,7 +101,7 @@
   }
 
   .glass-input {
-    @apply bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-emerald-500/50 focus:bg-white/10 transition-all placeholder:text-slate-500;
+    @apply bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-[var(--text-main)] outline-none focus:border-emerald-500/50 focus:bg-white/10 transition-all placeholder:text-slate-500;
   }
 
   select.glass-input {
@@ -109,6 +109,34 @@
   }
 
   select.glass-input option {
-    @apply bg-[#0f172a] text-white py-2;
+    @apply bg-[var(--bg-main)] text-[var(--text-main)] py-2;
   }
+}
+
+/* ─── Global Light Mode Overrides ─────────────────────────────────── */
+:root.light .text-white:not(.btn-premium *):not(.bg-emerald-500 *):not(.bg-indigo-500 *):not(.bg-rose-500 *):not([class*="bg-gradient-to"] *):not(.text-emerald-500):not(.text-rose-500),
+:root.light .text-slate-50,
+:root.light .text-slate-100,
+:root.light .text-slate-200,
+:root.light .group-hover\:text-white:hover,
+:root.light .group-hover\:text-slate-200:hover,
+:root.light .hover\:text-white:hover {
+  color: var(--text-main) !important;
+}
+
+:root.light .text-slate-300,
+:root.light .text-slate-400,
+:root.light .text-slate-500,
+:root.light .group-hover\:text-slate-400:hover {
+  color: var(--text-muted) !important;
+}
+
+:root.light .border-white\/5,
+:root.light .border-white\/10 {
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+:root.light .bg-white\/5,
+:root.light .bg-white\/10 {
+  background-color: rgba(0, 0, 0, 0.03) !important;
 }
