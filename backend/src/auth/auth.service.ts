@@ -19,7 +19,7 @@ export class AuthService {
 
         const user = await this.userRepository.findOne({
             where: { email },
-            select: ['id', 'email', 'password', 'role', 'isActive', 'storeId'],
+            select: ['id', 'email', 'password', 'role', 'isActive', 'storeId', 'name'],
         });
 
         if (!user || !(await user.validatePassword(password))) {
@@ -48,6 +48,7 @@ export class AuthService {
                 email: user.email,
                 role: user.role,
                 storeId: user.storeId,
+                name: user.name,
             },
         };
     }

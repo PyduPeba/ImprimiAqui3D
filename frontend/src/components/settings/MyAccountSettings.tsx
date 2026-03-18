@@ -33,7 +33,7 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 type PasswordFormValues = z.infer<typeof passwordSchema>;
 
 export function MyAccountSettings() {
-    const { user, login } = useAuth();
+    const { user, updateUser } = useAuth();
     const [isSavingProfile, setIsSavingProfile] = useState(false);
     const [isSavingPassword, setIsSavingPassword] = useState(false);
 
@@ -57,14 +57,8 @@ export function MyAccountSettings() {
         setIsSavingProfile(true);
         try {
             const updatedUser = await usersService.updateProfile(data.name);
-            // We need to update the user in the context/local storage
-            const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
-            const newUser = { ...savedUser, name: updatedUser.name };
-            localStorage.setItem('user', JSON.stringify(newUser));
-            // Trigger a re-render or context update if possible, 
-            // for now a reload or the user can see it next time
+            updateUser({ ...user, name: updatedUser.name });
             toast.success('Perfil atualizado com sucesso!');
-            window.location.reload(); // Quickest way to sync state across layout
         } catch (error) {
             toast.error('Erro ao atualizar perfil');
         } finally {

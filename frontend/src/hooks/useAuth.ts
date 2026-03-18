@@ -32,7 +32,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         router.push('/login');
     };
 
-    return React.createElement(AuthContext.Provider, { value: { user, login, logout, loading } }, children);
+    const updateUser = (userData: any) => {
+        setUser(userData);
+        localStorage.setItem('user', JSON.stringify(userData));
+    };
+
+    return React.createElement(AuthContext.Provider, { value: { user, login, logout, updateUser, loading } }, children);
 }
 
 export const useAuth = () => {
