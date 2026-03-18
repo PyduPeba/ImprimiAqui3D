@@ -76,9 +76,12 @@ export class HomeAssistantService {
 
             // Pass 3: Processar Status e ETA
             for (const printer of printersMap.values()) {
-                if (printer._rawStatus === 'printing' || printer._rawStatus === 'busy') {
+                // Flashforge AD5X: uses "building" when printing
+                if (printer._rawStatus === 'printing' || printer._rawStatus === 'busy' || printer._rawStatus === 'building') {
                     printer.status = 'printing';
-                } else if (printer._rawStatus === 'ready' || printer._rawStatus === 'idle' || printer._rawStatus === 'completed') {
+                } else if (printer._rawStatus === 'paused') {
+                    printer.status = 'paused';
+                } else if (printer._rawStatus === 'ready' || printer._rawStatus === 'idle' || printer._rawStatus === 'completed' || printer._rawStatus === 'cancelled') {
                     printer.status = 'idle';
                 } else if (printer._rawStatus === 'unavailable' || printer._rawStatus === 'unknown' || printer._rawStatus === 'offline') {
                     printer.status = 'offline';
