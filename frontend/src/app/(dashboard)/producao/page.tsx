@@ -252,10 +252,19 @@ export default function ProductionPage() {
       
       // Correlate HA telemetry with DB printers to get DB IDs for commands
       const enriched: LivePrinter[] = telemetry.map((p: LivePrinter) => {
-        const match = dbPrinters.find((db: any) =>
-          db.haEntityId === p.id ||
-          db.name.toLowerCase() === p.name.toLowerCase()
-        );
+        const match = dbPrinters.find((db: any) => {
+          if (db.haEntityId && (db.haEntityId === p.id || db.haEntityId.includes(p.id))) return true;
+          if (db.name.toLowerCase() === p.name.toLowerCase()) return true;
+          
+          const dbNameLower = db.name.toLowerCase();
+          const haNameLower = p.name.toLowerCase();
+          const haIdLower = p.id.toLowerCase();
+          
+          if (haIdLower.includes(dbNameLower) || dbNameLower.includes(haIdLower)) return true;
+          if (haNameLower.includes(dbNameLower) || dbNameLower.includes(haNameLower)) return true;
+          
+          return false;
+        });
         return { ...p, dbPrinterId: match?.id };
       });
 

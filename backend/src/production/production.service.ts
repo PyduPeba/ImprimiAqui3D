@@ -44,10 +44,19 @@ export class ProductionService {
 
         for (const haPrinter of telemetry) {
             // Match printer
-            const dbPrinter = printers.find(p => 
-                p.haEntityId === haPrinter.id || 
-                p.name.toLowerCase() === haPrinter.name.toLowerCase()
-            );
+            const dbPrinter = printers.find(p => {
+                if (p.haEntityId && (p.haEntityId === haPrinter.id || p.haEntityId.includes(haPrinter.id))) return true;
+                if (p.name.toLowerCase() === haPrinter.name.toLowerCase()) return true;
+                
+                const dbNameLower = p.name.toLowerCase();
+                const haNameLower = haPrinter.name.toLowerCase();
+                const haIdLower = haPrinter.id.toLowerCase();
+                
+                if (haIdLower.includes(dbNameLower) || dbNameLower.includes(haIdLower)) return true;
+                if (haNameLower.includes(dbNameLower) || dbNameLower.includes(haNameLower)) return true;
+                
+                return false;
+            });
 
             if (!dbPrinter) continue;
 
