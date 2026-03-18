@@ -2,6 +2,7 @@
 
 import { Sidebar } from '@/components/layout/Sidebar';
 import { NotificationCenter } from '@/components/NotificationCenter';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { UpdateNotifier } from '@/components/electron/UpdateNotifier';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -14,10 +15,10 @@ export default function DashboardLayout({
   const userName = user?.name || 'Sem Nome';
   const initials = userName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
   return (
-    <div className="h-screen overflow-hidden flex bg-[#0f172a] text-white">
+    <div className="h-screen overflow-hidden flex bg-[var(--bg-main)] text-[var(--text-main)] transition-colors duration-500">
       <Sidebar />
       <div className="flex-1 flex flex-col pl-64 transition-all duration-300">
-        <header className="h-20 bg-[#0f172a]/40 backdrop-blur-xl border-b border-white/5 px-10 flex items-center justify-between sticky top-0 z-40">
+        <header className="h-20 bg-[var(--bg-main)]/40 backdrop-blur-xl border-b border-[var(--glass-border)] px-10 flex items-center justify-between sticky top-0 z-40">
           <div className="flex flex-col">
             <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
               Sistema <span className="text-emerald-500 font-extrabold px-2 py-0.5 bg-emerald-500/10 rounded-lg border border-emerald-500/20 text-xs tracking-widest uppercase">V2.0</span>
@@ -25,6 +26,7 @@ export default function DashboardLayout({
             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-1">ImprimiAqui3D • Gestão Inteligente</p>
           </div>
           <div className="flex items-center gap-8">
+            <ThemeToggle />
             <NotificationCenter />
             
             <div className="flex items-center gap-4 pl-8 border-l border-white/5">

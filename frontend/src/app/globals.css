@@ -7,18 +7,35 @@
   --secondary: #6366f1; /* Indigo 500 */
   --accent: #f43f5e; /* Rose 500 */
   
-  /* Neutral Palette */
-  --bg-main: #0f172a; /* Deep Slate (Night Mode by Default) */
+  /* Neutral Palette - Dark (Default) */
+  --bg-main: #020617;
   --bg-sidebar: rgba(15, 23, 42, 0.8);
-  --bg-card: rgba(30, 41, 59, 0.7);
+  --bg-card: rgba(30, 41, 59, 0.4);
   
   /* Text */
   --text-main: #f8fafc;
   --text-muted: #94a3b8;
   
   /* Glassmorphism */
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --glass-shadow: rgba(0, 0, 0, 0.5);
+}
+
+:root.light {
+  /* Neutral Palette - Light */
+  --bg-main: #f8fafc;
+  --bg-sidebar: rgba(255, 255, 255, 0.8);
+  --bg-card: rgba(255, 255, 255, 0.7);
+  
+  /* Text */
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  
+  /* Glassmorphism Light */
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-bg: rgba(0, 0, 0, 0.01);
+  --glass-shadow: rgba(0, 0, 0, 0.05);
 }
 
 @theme {
@@ -31,18 +48,18 @@
 
 @layer base {
   body {
-    @apply bg-[var(--bg-main)] text-[var(--text-main)] antialiased;
+    @apply bg-[var(--bg-main)] text-[var(--text-main)] antialiased transition-colors duration-500;
     font-family: "Outfit", sans-serif;
     background-image: 
-      radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.15) 0px, transparent 50%),
-      radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.15) 0px, transparent 50%);
+      radial-gradient(at 0% 0%, rgba(var(--primary-rgb, 16, 185, 129), 0.12) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(var(--secondary-rgb, 99, 102, 241), 0.12) 0px, transparent 50%);
     background-attachment: fixed;
   }
 }
 
 @layer components {
   .glass-card {
-    @apply bg-[var(--bg-card)] backdrop-blur-xl border border-[var(--glass-border)] rounded-2xl p-6 shadow-2xl transition-all duration-300;
+    @apply bg-[var(--bg-card)] backdrop-blur-xl border border-[var(--glass-border)] rounded-2xl p-6 shadow-xl shadow-[var(--glass-shadow)] transition-all duration-300;
   }
   
   .glass-card:hover {

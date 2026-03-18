@@ -1,12 +1,52 @@
 'use client';
 
-import { useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { settingsService } from '@/services/settings.service';
 
+type ThemeMode = 'light' | 'dark';
+
+interface ThemeContextType {
+    mode: ThemeMode;
+    toggleTheme: () => void;
+}
+
+const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
+    const [mode, setMode] = useState<ThemeMode>('dark');
+
+    const toggleTheme = () => {
+        const newMode = mode === 'dark' ? 'light' : 'dark';
+        setMode(newMode);
+        localStorage.setItem('theme', newMode);
+        applyTheme(newMode);
+    };
+
+    const applyTheme = (currentMode: ThemeMode) => {
+        const root = document.documentElement;
+        if (currentMode === 'light') {
+            root.classList.add('light');
+        } else {
+            root.classList.remove('light');
+        }
+    };
+
     useEffect(() => {
-        const loadTheme = async () => {
-            // Check for token to avoid 401 loop on login page
+        // Load mode from localStorage
+        const savedMode = localStorage.getItem('theme') as ThemeMode;
+        if (savedMode) {
+            setMode(savedMode);
+            applyTheme(savedMode);
+        } else {
+            // Default to dark or check system preference
+            const prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+            if (prefersLight) {
+                setMode('light');
+                applyTheme('light');
+            }
+        }
+
+        const loadBrandSettings = async () => {
             const token = localStorage.getItem('token');
             if (!token) return;
 
@@ -22,13 +62,24 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
                     }
                 }
             } catch (error) {
-                // Silently fail to avoid console noise during auth transitions
-                console.warn('Failed to load theme settings', error);
+                console.warn('Failed to load branding settings:', error);
             }
         };
 
-        loadTheme();
+        loadBrandSettings();
     }, []);
 
-    return <>{children}</>;
+    return (
+        <ThemeContext.Provider value={{ mode, toggleTheme }}>
+            {children}
+        </ThemeContext.Provider>
+    );
 }
+
+export const useTheme = () => {
+    const context = useContext(ThemeContext);
+    if (!context) {
+        throw new Error('useTheme must be used within a ThemeProvider');
+    }
+    return context;
+};
