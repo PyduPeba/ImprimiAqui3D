@@ -21,6 +21,14 @@ export const productionService = {
         const response = await api.get('/production/alerts');
         return response.data;
     },
+    async assignJob(jobId: string, printerId: string) {
+        const response = await api.patch(`/production/jobs/${jobId}/assign`, { printerId });
+        return response.data;
+    },
+    async updateJobStatus(jobId: string, status: string) {
+        const response = await api.patch(`/production/jobs/${jobId}/status`, { status });
+        return response.data;
+    },
     async createPrinter(data: any) {
         const response = await api.post('/production/printers', data);
         return response.data;

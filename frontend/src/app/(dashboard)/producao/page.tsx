@@ -42,9 +42,11 @@ interface LivePrinter {
 
 interface PrintJob {
   id: string;
-  name: string;
+  saleItemId: string;
   status: 'PRINTING' | 'WAITING' | 'PAUSED' | 'COMPLETED' | 'FAILED';
-  printer: string;
+  printer: { id: string; name: string } | null;
+  priority: number;
+  estimatedTime: number;
   progress: number;
   timeRemaining: string;
 }
@@ -245,23 +247,28 @@ export default function ProductionPage() {
   const { socket, connected } = useSocket();
   const [activeTab, setActiveTab] = useState<Tab>(Tab.CONTROL);
   const [printers, setPrinters] = useState<LivePrinter[]>([]);
+  const [dbPrinters, setDbPrinters] = useState<any[]>([]);
   const [jobs, setJobs] = useState<PrintJob[]>([]);
   const [alerts, setAlerts] = useState<PrintAlert[]>([]);
   const [lastSync, setLastSync] = useState<string>('—');
   const [loading, setLoading] = useState(true);
+  const [assigningJobId, setAssigningJobId] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     try {
-      const [telemetry, queue, dbPrinters, rawAlerts] = await Promise.all([
+      const [telemetry, queue, rawDbPrinters, rawAlerts] = await Promise.all([
         productionService.getPrintersTelemetry(),
         productionService.getQueue(),
         productionService.getPrinters(),
         productionService.getProductionAlerts(),
       ]);
       
+      setDbPrinters(rawDbPrinters);
+
       // Correlate HA telemetry with DB printers to get DB IDs for commands
       const enriched: LivePrinter[] = telemetry.map((p: LivePrinter) => {
-        const match = dbPrinters.find((db: any) => {
+        const match = rawDbPrinters.find((db: any) => {
           if (db.haEntityId && (db.haEntityId === p.id || db.haEntityId.includes(p.id))) return true;
           if (db.name.toLowerCase() === p.name.toLowerCase()) return true;
           
@@ -315,6 +322,28 @@ export default function ProductionPage() {
       socket.off('job:created', handleSync);
     };
   }, [socket, loadData]);
+
+  // Actions
+  const handleAssign = async (jobId: string, printerId: string) => {
+    setActionLoading(jobId);
+    try {
+      await productionService.assignJob(jobId, printerId);
+      setAssigningJobId(null);
+      await loadData();
+    } catch { /* silent */ } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleJobStatus = async (jobId: string, status: string) => {
+    setActionLoading(jobId);
+    try {
+      await productionService.updateJobStatus(jobId, status);
+      await loadData();
+    } catch { /* silent */ } finally {
+      setActionLoading(null);
+    }
+  };
 
   // KPIs
   const activePrinters = printers.filter(p => p.status === 'printing').length;
@@ -441,7 +470,12 @@ export default function ProductionPage() {
               </div>
 
               <div className="divide-y divide-white/4">
-                {jobs.map((job, i) => {
+                {jobs.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10 text-slate-600">
+                    <Layers size={22} className="mb-2 opacity-30" />
+                    <p className="text-[10px] font-bold uppercase tracking-widest">Fila vazia</p>
+                  </div>
+                ) : jobs.map((job, i) => {
                   const statusMap = {
                     PRINTING: { label: 'Imprimindo', color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
                     WAITING:  { label: 'Aguardando', color: 'text-slate-400', bg: 'bg-slate-700/40 border-slate-600/20' },
@@ -450,46 +484,83 @@ export default function ProductionPage() {
                     FAILED:   { label: 'Falhou', color: 'text-rose-400', bg: 'bg-rose-500/10 border-rose-500/20' },
                   };
                   const s = statusMap[job.status] ?? statusMap.WAITING;
+                  const isThisAssigning = assigningJobId === job.id;
+                  const isLoading = actionLoading === job.id;
 
                   return (
-                    <div key={job.id} className="flex items-center gap-4 px-6 py-4 hover:bg-white/3 transition-colors group">
+                    <div key={job.id} className="flex items-center gap-4 px-6 py-4 hover:bg-white/3 transition-colors group relative">
                       <div className="w-7 h-7 rounded-lg bg-slate-800 border border-white/8 flex items-center justify-center text-[10px] font-black text-slate-500 shrink-0">
                         {i + 1}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <p className="text-sm font-bold text-slate-200 truncate">{job.name}</p>
+                          <p className="text-sm font-bold text-slate-200 truncate">Job #{job.id.slice(0, 8)}</p>
                           <span className={`shrink-0 text-[8px] font-black uppercase px-1.5 py-0.5 rounded-sm border ${s.bg} ${s.color}`}>
                             {s.label}
                           </span>
                         </div>
                         <div className="flex items-center gap-3 mt-1 text-[10px] text-slate-500 font-medium">
-                          <span className="flex items-center gap-1"><PrinterIcon size={9} />{job.printer}</span>
-                          <span className="flex items-center gap-1"><Clock size={9} />{job.timeRemaining}</span>
+                          {job.printer ? (
+                            <span className="flex items-center gap-1 text-emerald-500/70"><PrinterIcon size={9} />{job.printer.name}</span>
+                          ) : (
+                            <span className="flex items-center gap-1 text-slate-600"><PrinterIcon size={9} />Sem impressora</span>
+                          )}
+                          {job.estimatedTime > 0 && (
+                            <span className="flex items-center gap-1"><Clock size={9} />{job.estimatedTime}min est.</span>
+                          )}
                         </div>
-                        {job.progress > 0 && (
-                          <div className="mt-2 h-1 bg-slate-800 rounded-full overflow-hidden w-36">
-                            <div
-                              className={`h-full rounded-full transition-all duration-1000 ${job.status === 'PRINTING' ? 'bg-emerald-500' : 'bg-amber-500'}`}
-                              style={{ width: `${job.progress}%` }}
-                            />
+                      </div>
+
+                      {/* Smart Queue Actions */}
+                      <div className={`flex items-center gap-1 shrink-0 ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}>
+                        {/* Assign printer dropdown */}
+                        {job.status === 'WAITING' && (
+                          <div className="relative">
+                            <button
+                              onClick={() => setAssigningJobId(isThisAssigning ? null : job.id)}
+                              className="flex items-center gap-1 px-2 py-1 text-[9px] font-black uppercase tracking-widest bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-500/20 transition-colors"
+                            >
+                              <PrinterIcon size={10} />
+                              {job.printer ? 'Mudar' : 'Vincular'}
+                            </button>
+                            {isThisAssigning && (
+                              <div className="absolute right-0 top-8 z-50 w-48 bg-slate-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden">
+                                {dbPrinters.map((p: any) => (
+                                  <button
+                                    key={p.id}
+                                    onClick={() => handleAssign(job.id, p.id)}
+                                    className="w-full flex items-center gap-2 px-3 py-2.5 text-[10px] font-bold text-left text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
+                                  >
+                                    <PrinterIcon size={11} className="text-emerald-400 shrink-0" />
+                                    {p.name}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         )}
-                      </div>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                        {job.status === 'PRINTING' && (
-                          <button className="p-1.5 bg-amber-500/10 text-amber-400 rounded-lg hover:bg-amber-500/20 transition-colors" title="Pausar">
-                            <Pause size={12} />
-                          </button>
-                        )}
-                        {job.status === 'PAUSED' && (
-                          <button className="p-1.5 bg-emerald-500/10 text-emerald-400 rounded-lg hover:bg-emerald-500/20 transition-colors" title="Retomar">
+
+                        {/* Start button (only if assigned) */}
+                        {job.status === 'WAITING' && job.printer && (
+                          <button
+                            onClick={() => handleJobStatus(job.id, 'PRINTING')}
+                            className="p-1.5 bg-emerald-500/10 text-emerald-400 rounded-lg hover:bg-emerald-500/20 transition-colors"
+                            title="Iniciar Impressão"
+                          >
                             <Play size={12} />
                           </button>
                         )}
-                        <button className="p-1.5 bg-red-500/10 text-rose-400 rounded-lg hover:bg-rose-500/20 transition-colors" title="Cancelar">
-                          <XCircle size={12} />
-                        </button>
+
+                        {/* Cancel button */}
+                        {(job.status === 'WAITING' || job.status === 'PRINTING' || job.status === 'PAUSED') && (
+                          <button
+                            onClick={() => handleJobStatus(job.id, 'FAILED')}
+                            className="p-1.5 bg-rose-500/10 text-rose-400 rounded-lg hover:bg-rose-500/20 transition-colors"
+                            title="Cancelar"
+                          >
+                            <XCircle size={12} />
+                          </button>
+                        )}
                       </div>
                     </div>
                   );

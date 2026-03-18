@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Put, Delete, Logger } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete, Logger, Patch } from '@nestjs/common';
 import { ProductionService } from './production.service';
 import { HomeAssistantService } from '../home-assistant/home-assistant.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -77,5 +77,16 @@ export class ProductionController {
     @Post('printers/:id/command')
     sendPrinterCommand(@Param('id') id: string, @Body() body: { command: 'pause' | 'resume' | 'abort' }) {
         return this.productionService.sendPrinterCommand(id, body.command);
+    }
+
+    // Job Management
+    @Patch('jobs/:id/assign')
+    assignPrinterToJob(@Param('id') id: string, @Body() body: { printerId: string }) {
+        return this.productionService.assignPrinter(id, body.printerId);
+    }
+
+    @Patch('jobs/:id/status')
+    updateJobStatus(@Param('id') id: string, @Body() body: { status: any }) {
+        return this.productionService.updateJobStatus(id, body.status);
     }
 }
