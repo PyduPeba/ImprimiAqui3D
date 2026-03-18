@@ -49,6 +49,13 @@ function timeAgo(dateStr: string) {
     return `${Math.floor(hrs / 24)}d atrás`;
 }
 
+function getFullUrl(path: string) {
+    if (!path) return '';
+    if (path.startsWith('http') || path.startsWith('data:')) return path;
+    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api').replace('/api', '');
+    return `${baseUrl}${path}`;
+}
+
 export default function ModelingDetails({ request, onClose, onUpdate }: ModelingDetailsProps) {
     const [newMessage, setNewMessage] = useState('');
     const [sending, setSending] = useState(false);
@@ -125,13 +132,13 @@ export default function ModelingDetails({ request, onClose, onUpdate }: Modeling
                         <X size={20} />
                     </button>
                     <img
-                        src={previewImage}
+                        src={getFullUrl(previewImage)}
                         alt="Preview"
                         className="max-w-full max-h-[90vh] object-contain rounded-2xl shadow-2xl"
                         onClick={(e) => e.stopPropagation()}
                     />
                     <a
-                        href={previewImage}
+                        href={getFullUrl(previewImage)}
                         download
                         target="_blank"
                         rel="noopener noreferrer"
@@ -266,7 +273,7 @@ export default function ModelingDetails({ request, onClose, onUpdate }: Modeling
                                         {/* Thumbnail */}
                                         <div className="w-10 h-10 rounded-lg overflow-hidden bg-white/5 shrink-0 flex items-center justify-center">
                                             {isImage(att.filename) ? (
-                                                <img src={att.url} alt="" className="w-full h-full object-cover" />
+                                                <img src={getFullUrl(att.url)} alt="" className="w-full h-full object-cover" />
                                             ) : (
                                                 <FileText size={18} className="text-slate-500" />
                                             )}
@@ -286,7 +293,7 @@ export default function ModelingDetails({ request, onClose, onUpdate }: Modeling
                                                 </button>
                                             )}
                                             <a
-                                                href={att.url}
+                                                href={getFullUrl(att.url)}
                                                 download={att.filename}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
