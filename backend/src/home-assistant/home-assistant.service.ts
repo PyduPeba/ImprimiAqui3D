@@ -4,18 +4,59 @@ import axios from 'axios';
 export interface PrinterData {
     id: string;
     name: string;
-    status: 'printing' | 'idle' | 'offline';
+    status: 'printing' | 'idle' | 'offline' | 'paused';
     file: string;
     progress: number;
     eta: string;
 }
 
+export type PrinterCommand = 'pause' | 'resume' | 'abort';
+
 @Injectable()
 export class HomeAssistantService {
     private readonly logger = new Logger(HomeAssistantService.name);
-    // Hardcoded for now. In production, this goes to .env
-    private readonly haUrl = 'http://192.168.18.240:8123';
-    private readonly haToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNWE3NGYzYTg0YzI0YTliODA4NWNkNzZlMzVjYTk4MyIsImlhdCI6MTc3Mzc2MzcwNCwiZXhwIjoyMDg5MTIzNzA0fQ.vso09LvHNcoMgk0udlYitN-WRmarc1wQMQqAUQuvSOc';
+    private readonly haUrl = process.env.HA_URL || 'http://192.168.18.240:8123';
+    private readonly haToken = process.env.HA_TOKEN || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNWE3NGYzYTg0YzI0YTliODA4NWNkNzZlMzVjYTk4MyIsImlhdCI6MTc3Mzc2MzcwNCwiZXhwIjoyMDg5MTIzNzA0fQ.vso09LvHNcoMgk0udlYitN-WRmarc1wQMQqAUQuvSOc';
+
+    private readonly headers = () => ({
+        Authorization: `Bearer ${this.haToken}`,
+        'Content-Type': 'application/json',
+    });
+
+    /**
+     * Sends a generic command (pause/resume/abort) to a printer via Home Assistant.
+     * Handles hardware-specific entity naming (Elegoo/Moonraker vs Flashforge).
+     *
+     * @param baseEntityId - The base entity prefix (e.g., "ad5x" or "centauri_carbon_2")
+     * @param command - The generic command to send
+     */
+    async sendCommand(baseEntityId: string, command: PrinterCommand): Promise<void> {
+        // Map generic commands to specific entity IDs per hardware type
+        const entityMap: Record<PrinterCommand, string> = {
+            pause:  `button.${baseEntityId}_pause_print`,   // Elegoo/Moonraker
+            resume: `button.${baseEntityId}_resume_print`,
+            abort:  `button.${baseEntityId}_stop_print`,
+        };
+
+        // Flashforge AD5X uses different naming convention
+        const flashforgeEntityMap: Record<PrinterCommand, string> = {
+            pause:  `button.${baseEntityId}_pause`,
+            resume: `button.${baseEntityId}_continue`,
+            abort:  `button.${baseEntityId}_abort`,
+        };
+
+        // Detect Flashforge by entity prefix naming convention
+        const isFlashforge = baseEntityId.includes('ad5x') || baseEntityId.includes('ff_');
+        const entityId = isFlashforge ? flashforgeEntityMap[command] : entityMap[command];
+
+        this.logger.log(`Sending HA command: ${command} → entity: ${entityId}`);
+
+        await axios.post(
+            `${this.haUrl}/api/services/button/press`,
+            { entity_id: entityId },
+            { headers: this.headers() },
+        );
+    }
 
     async getPrinters(): Promise<PrinterData[]> {
         try {

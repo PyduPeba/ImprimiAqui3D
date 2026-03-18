@@ -37,6 +37,7 @@ interface LivePrinter {
   file: string;
   progress: number;
   eta: string;
+  dbPrinterId?: string;  // resolved from DB after correlation
 }
 
 interface PrintJob {
@@ -124,10 +125,23 @@ const MOCK_QUEUE: PrintJob[] = [
 // ────────────────────────────────────────────────────────────────────────────────
 // Printer Card
 // ────────────────────────────────────────────────────────────────────────────────
-function PrinterCard({ printer }: { printer: LivePrinter }) {
+function PrinterCard({ printer, printerId }: { printer: LivePrinter; printerId?: string }) {
   const cfg = PRINTER_CFG[printer.status] ?? PRINTER_CFG.idle;
   const isPrinting = printer.status === 'printing';
   const isPaused = printer.status === 'paused';
+  const [cmdLoading, setCmdLoading] = useState(false);
+
+  const handleCommand = async (command: 'pause' | 'resume' | 'abort') => {
+    if (!printerId || cmdLoading) return;
+    setCmdLoading(true);
+    try {
+      await productionService.sendPrinterCommand(printerId, command);
+    } catch {
+      // silently fail — the 5s poll will reflect the true state
+    } finally {
+      setTimeout(() => setCmdLoading(false), 2000);
+    }
+  };
 
   return (
     <div
@@ -156,20 +170,32 @@ function PrinterCard({ printer }: { printer: LivePrinter }) {
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        {/* Action Buttons */}
+        <div className={`flex gap-1 transition-opacity ${cmdLoading ? 'opacity-50 pointer-events-none' : 'opacity-0 group-hover:opacity-100'}`}>
           {isPrinting && (
-            <button className="p-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-lg transition-colors" title="Pausar">
+            <button
+              onClick={() => handleCommand('pause')}
+              className="p-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-lg transition-colors"
+              title="Pausar"
+            >
               <Pause size={13} />
             </button>
           )}
           {isPaused && (
-            <button className="p-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg transition-colors" title="Retomar">
+            <button
+              onClick={() => handleCommand('resume')}
+              className="p-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg transition-colors"
+              title="Retomar"
+            >
               <Play size={13} />
             </button>
           )}
           {(isPrinting || isPaused) && (
-            <button className="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg transition-colors" title="Cancelar">
+            <button
+              onClick={() => handleCommand('abort')}
+              className="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg transition-colors"
+              title="Cancelar"
+            >
               <StopCircle size={13} />
             </button>
           )}
@@ -218,13 +244,22 @@ export default function ProductionPage() {
 
   const loadData = useCallback(async () => {
     try {
-      const [telemetry, queue] = await Promise.all([
+      const [telemetry, queue, dbPrinters] = await Promise.all([
         productionService.getPrintersTelemetry(),
-        productionService.getQueue()
+        productionService.getQueue(),
+        productionService.getPrinters(),
       ]);
       
-      // Map backend printers/jobs if needed or just use as is
-      setPrinters(telemetry);
+      // Correlate HA telemetry with DB printers to get DB IDs for commands
+      const enriched: LivePrinter[] = telemetry.map((p: LivePrinter) => {
+        const match = dbPrinters.find((db: any) =>
+          db.haEntityId === p.id ||
+          db.name.toLowerCase() === p.name.toLowerCase()
+        );
+        return { ...p, dbPrinterId: match?.id };
+      });
+
+      setPrinters(enriched);
       setJobs(queue);
       setLastSync(new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
     } catch {
@@ -356,7 +391,7 @@ export default function ProductionPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {printers.map((printer, i) => (
-                  <PrinterCard key={printer.id || i} printer={printer} />
+                  <PrinterCard key={printer.id || i} printer={printer} printerId={printer.dbPrinterId} />
                 ))}
               </div>
             )}

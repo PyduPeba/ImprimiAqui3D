@@ -13,6 +13,10 @@ export const productionService = {
         const response = await api.get('/production/queue');
         return response.data;
     },
+    async sendPrinterCommand(printerId: string, command: 'pause' | 'resume' | 'abort') {
+        const response = await api.post(`/production/printers/${printerId}/command`, { command });
+        return response.data;
+    },
     async createPrinter(data: any) {
         const response = await api.post('/production/printers', data);
         return response.data;

@@ -43,6 +43,9 @@ export class PrintJob {
     @Column({ type: 'integer', default: 0 })
     actualTime: number; // minutes
 
+    @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+    actualCost: number; // BRL
+
     @CreateDateColumn()
     createdAt: Date;
 

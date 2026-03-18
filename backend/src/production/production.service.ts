@@ -57,15 +57,56 @@ export class ProductionService {
             if (haPrinter.status === 'printing') {
                 if (job && job.status !== PrintStatus.PRINTING) {
                     await this.updateJobStatus(job.id, PrintStatus.PRINTING);
+                } else if (!job) {
+                    // No assigned job — printer is running outside the queue, nothing to do
+                }
+            } else if (haPrinter.status === 'paused') {
+                if (job && job.status === PrintStatus.PRINTING) {
+                    await this.updateJobStatus(job.id, PrintStatus.PAUSED);
                 }
             } else if (haPrinter.status === 'idle') {
                 if (job && job.status === PrintStatus.PRINTING) {
-                    // Only mark as completed if progress is high or HA says idle/completed
-                    // For now, let's be aggressive: if it was printing and now is idle, it finished.
+                    // === PASSO 3: Real Cost Calculation ===
+                    const costPerMinute = dbPrinter.hourlyRate ? Number(dbPrinter.hourlyRate) / 60 : 0;
+                    const durationMinutes = job.startedAt
+                        ? Math.round((Date.now() - new Date(job.startedAt).getTime()) / 60000)
+                        : (job.estimatedTime || 0);
+                    const actualCost = parseFloat((costPerMinute * durationMinutes).toFixed(2));
+
+                    job.actualCost = actualCost;
+                    await this.printJobRepository.save(job);
                     await this.updateJobStatus(job.id, PrintStatus.COMPLETED);
+                    this.logger.log(`Job ${job.id} concluded — duration: ${durationMinutes}min, cost: R$${actualCost}`);
+                }
+
+                // === PASSO 4: Smart Queue — auto-assign next WAITING job ===
+                const nextJob = await this.printJobRepository.findOne({
+                    where: { status: PrintStatus.WAITING, printer: { id: dbPrinter.id } },
+                    order: { priority: 'ASC', createdAt: 'ASC' },
+                    relations: ['printer'],
+                });
+
+                if (nextJob) {
+                    // Printer is free and there's a waiting job for it — surface via socket
+                    this.productionGateway.server?.emit('queue:ready-to-print', {
+                        printerName: dbPrinter.name,
+                        jobId: nextJob.id,
+                        message: `${dbPrinter.name} está livre! Pronta para o próximo trabalho.`,
+                    });
                 }
             }
         }
+    }
+
+    async sendPrinterCommand(printerId: string, command: 'pause' | 'resume' | 'abort') {
+        const printer = await this.printerRepository.findOne({ where: { id: printerId } });
+        if (!printer) throw new NotFoundException('Impressora não encontrada');
+
+        // Use explicit haEntityId if provided, otherwise derive from name
+        const baseEntityId = printer.haEntityId || printer.name.toLowerCase().replace(/\s+/g, '_');
+        await this.homeAssistantService.sendCommand(baseEntityId, command);
+        this.logger.log(`Remote command "${command}" sent to printer "${printer.name}" (entity: ${baseEntityId})`);
+        return { success: true, printer: printer.name, command };
     }
 
     async createJob(saleItemId: string, estimatedTime: number) {

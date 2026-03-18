@@ -66,4 +66,9 @@ export class ProductionController {
     deletePrinter(@Param('id') id: string) {
         return this.productionService.deletePrinter(id);
     }
+
+    @Post('printers/:id/command')
+    sendPrinterCommand(@Param('id') id: string, @Body() body: { command: 'pause' | 'resume' | 'abort' }) {
+        return this.productionService.sendPrinterCommand(id, body.command);
+    }
 }
