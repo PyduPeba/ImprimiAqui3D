@@ -289,7 +289,7 @@ export default function ModelagemPage() {
   const activeRequest = requests.find((r) => r.id === selectedRequestId);
 
   return (
-    <div className="flex flex-col h-full space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="flex flex-col h-full gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-hidden">
 
       {/* ── Header ─────────────────────────────────────────────── */}
       <div className="flex items-center justify-between flex-wrap gap-4">
@@ -376,7 +376,7 @@ export default function ModelagemPage() {
       </div>
 
       {/* ── Kanban Board ───────────────────────────────────────── */}
-      <div className="flex gap-3 overflow-x-auto pb-4 flex-1">
+      <div className="flex gap-3 overflow-x-auto pb-2 flex-1 min-h-0">
         {COLUMNS.map((col) => {
           const items = getColumnItems(col.id);
           const ColIcon = col.icon;
