@@ -465,15 +465,15 @@ function CaixaContent() {
   });
 
   return (
-    <div className="min-h-screen bg-white p-8">
+    <div className="min-h-screen bg-[var(--bg-main)] text-[var(--text-main)] transition-colors duration-500 p-8">
       {/* Header (Industrial Loft Style) */}
       <div className="mb-10 px-4">
-        <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase mb-2">
+        <h1 className="text-4xl font-black text-[var(--text-main)] tracking-tighter uppercase mb-2">
             Nova Venda <span className="text-emerald-500">/</span> Orçamento
         </h1>
         <div className="flex items-center gap-3">
             <div className="h-1 w-12 bg-emerald-500 rounded-full"></div>
-            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-[0.2em]">Workflow de Gestão Profissional</p>
+            <p className="text-[var(--text-muted)] text-[10px] font-bold uppercase tracking-[0.2em]">Workflow de Gestão Profissional</p>
         </div>
       </div>
 
@@ -481,15 +481,15 @@ function CaixaContent() {
         {/* Left Column - Items */}
         <div className="lg:col-span-2 space-y-4">
           {/* Customer Selection (Industrial Card) */}
-          <div className="bg-white rounded-3xl p-6 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] border border-slate-100 group">
-            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Identificação do Cliente <span className="text-slate-200">(Opcional)</span></label>
+          <div className="bg-[var(--bg-card)] rounded-3xl p-6 shadow-[0_10px_30px_-10px_var(--glass-shadow)] border border-[var(--glass-border)] group">
+            <label className="block text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-3 px-1">Identificação do Cliente <span className="text-[var(--text-muted)]/50">(Opcional)</span></label>
             <div className="relative">
-                <div className="flex items-center gap-3 bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500 transition-all">
-                    <Search size={20} className="text-slate-400" />
+                <div className="flex items-center gap-3 bg-[var(--bg-main)]/50 border border-[var(--glass-border)] rounded-2xl px-5 py-4 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500 transition-all">
+                    <Search size={20} className="text-[var(--text-muted)]" />
                     <input
                         type="text"
                         placeholder="Pesquisar registro de cliente..."
-                        className="w-full bg-transparent outline-none text-sm font-bold text-slate-900 placeholder:text-slate-300"
+                        className="w-full bg-transparent outline-none text-sm font-bold text-[var(--text-main)] placeholder:text-[var(--text-muted)]/50"
                         value={selectedCustomer ? selectedCustomer.name : searchTerm}
                         onChange={(e) => {
                             if (selectedCustomer) setSelectedCustomer(null);
@@ -582,7 +582,7 @@ function CaixaContent() {
           {/* Items List (Industrial Cards) */}
           <div className="space-y-4">
             {items.map((item) => (
-              <div key={item.id} className="bg-white rounded-3xl p-6 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] border border-slate-100 hover:shadow-xl transition-all duration-300">
+              <div key={item.id} className="bg-[var(--bg-card)] rounded-3xl p-6 shadow-[0_10px_30px_-10px_var(--glass-shadow)] border border-[var(--glass-border)] hover:shadow-xl transition-all duration-300">
                 <div className="flex items-start justify-between mb-6">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
@@ -859,11 +859,11 @@ function CaixaContent() {
       {/* Catalog Modal (Premium Glass) */}
       {showCatalogModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-[110] p-4 animate-in fade-in duration-300">
-          <div className="glass-card max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col p-0 border-white/10 shadow-[0_0_50px_rgba(16,185,129,0.1)]">
-            <div className="bg-slate-900/90 backdrop-blur-xl border-b border-white/5 px-8 py-6 flex items-center justify-between">
+          <div className="glass-card max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col p-0 border-[var(--glass-border)] shadow-2xl shadow-[var(--glass-shadow)]">
+            <div className="bg-[var(--bg-main)]/90 backdrop-blur-xl border-b border-[var(--glass-border)] px-8 py-6 flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-black text-white tracking-tight">Seleção de Ativos</h2>
-                <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">Busque itens prontos no seu catálogo</p>
+                <h2 className="text-2xl font-black text-[var(--text-main)] tracking-tight">Seleção de Ativos</h2>
+                <p className="text-[var(--text-muted)] text-[10px] font-bold uppercase tracking-widest mt-1">Busque itens prontos no seu catálogo</p>
               </div>
               <button 
                 onClick={() => {
@@ -878,30 +878,30 @@ function CaixaContent() {
             </div>
 
             {/* Modal Filters */}
-            <div className="p-6 bg-slate-900/30 border-b border-white/5 flex flex-col md:flex-row gap-4">
+            <div className="p-6 bg-[var(--bg-card)] border-b border-[var(--glass-border)] flex flex-col md:flex-row gap-4">
               <div className="flex-1 relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={18} />
                 <input
                   type="text"
                   placeholder="Pesquisar produto..."
                   value={catalogSearch}
                   onChange={(e) => setCatalogSearch(e.target.value)}
-                  className="w-full bg-slate-950/50 border border-white/5 rounded-xl pl-12 pr-4 py-3 text-white focus:border-emerald-500/50 outline-none transition-all placeholder:text-slate-600 font-bold text-sm"
+                  className="w-full bg-[var(--bg-main)]/50 border border-[var(--glass-border)] rounded-xl pl-12 pr-4 py-3 text-[var(--text-main)] focus:border-emerald-500/50 outline-none transition-all placeholder:text-[var(--text-muted)]/50 font-bold text-sm"
                 />
               </div>
               <div className="relative group">
-                <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+                <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={16} />
                 <select
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="bg-slate-950/50 border border-white/5 rounded-xl pl-12 pr-10 py-3 text-white focus:border-emerald-500/50 outline-none transition-all appearance-none font-bold text-sm min-w-[200px]"
+                  className="bg-[var(--bg-main)]/50 border border-[var(--glass-border)] rounded-xl pl-12 pr-10 py-3 text-[var(--text-main)] focus:border-emerald-500/50 outline-none transition-all appearance-none font-bold text-sm min-w-[200px]"
                 >
                   <option value="all">Todas as Categorias</option>
                   {categories.map(cat => (
                     <option key={cat.id} value={cat.id}>{cat.name}</option>
                   ))}
                 </select>
-                <ChevronRight size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 rotate-90" />
+                <ChevronRight size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] rotate-90" />
               </div>
             </div>
 
@@ -939,14 +939,14 @@ function CaixaContent() {
                     </div>
 
                     <div className="p-4">
-                      <h3 className="font-black text-white group-hover:text-emerald-400 transition-colors uppercase text-sm truncate mb-1">
+                      <h3 className="font-black text-[var(--text-main)] group-hover:text-emerald-400 transition-colors uppercase text-sm truncate mb-1">
                         {product.name}
                       </h3>
-                      <div className="flex items-center justify-between pt-3 border-t border-white/5">
-                        <div className="flex items-center gap-1 text-[10px] text-slate-500 font-black">
+                      <div className="flex items-center justify-between pt-3 border-t border-[var(--glass-border)]">
+                        <div className="flex items-center gap-1 text-[10px] text-[var(--text-muted)] font-black">
                           <Plus size={10} className="text-emerald-500" /> {product.weightGrams}g
                         </div>
-                        <div className="text-[10px] text-slate-500 font-black">
+                        <div className="text-[10px] text-[var(--text-muted)] font-black">
                           {product.printTimeMinutes}m
                         </div>
                       </div>
@@ -969,14 +969,14 @@ function CaixaContent() {
       {/* Payment Modal (Premium V2.0) */}
       {showPaymentModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-[120] p-4 animate-in fade-in duration-300">
-          <div className="glass-card max-w-xl w-full border-white/10 shadow-[0_0_50px_rgba(79,70,229,0.15)] overflow-hidden flex flex-col p-0">
+          <div className="glass-card max-w-xl w-full border-[var(--glass-border)] shadow-2xl shadow-[var(--glass-shadow)] overflow-hidden flex flex-col p-0">
             {/* Modal Header */}
-            <div className="bg-slate-900/90 backdrop-blur-xl border-b border-white/5 px-8 py-6 flex items-center justify-between">
+            <div className="bg-[var(--bg-main)]/90 backdrop-blur-xl border-b border-[var(--glass-border)] px-8 py-6 flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-black text-white tracking-tight uppercase">Finalizar Operação</h2>
+                <h2 className="text-2xl font-black text-[var(--text-main)] tracking-tight uppercase">Finalizar Operação</h2>
                 <div className="flex items-center gap-2 mt-1">
                     <div className="h-0.5 w-6 bg-emerald-500 rounded-full"></div>
-                    <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Snapshot Financeiro e Checkout</p>
+                    <p className="text-[var(--text-muted)] text-[10px] font-bold uppercase tracking-widest">Snapshot Financeiro e Checkout</p>
                 </div>
               </div>
               <button 
@@ -997,7 +997,7 @@ function CaixaContent() {
                             className={`px-4 py-2.5 rounded-xl text-[10px] font-black tracking-widest transition-all border ${
                                 selectedChannel === 'LOJA_FISICA'
                                     ? 'bg-indigo-500 text-white border-indigo-400 shadow-[0_0_20px_rgba(99,102,241,0.3)]'
-                                    : 'bg-slate-900/50 text-slate-400 border-white/5 hover:border-white/10'
+                                    : 'bg-[var(--bg-main)]/50 text-[var(--text-muted)] border-[var(--glass-border)] hover:border-[var(--text-muted)]/20'
                             }`}
                         >
                             LOJA FÍSICA
@@ -1009,7 +1009,7 @@ function CaixaContent() {
                                 className={`px-4 py-2.5 rounded-xl text-[10px] font-black tracking-widest transition-all border ${
                                     selectedChannel === channel
                                         ? 'bg-purple-500 text-white border-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.3)]'
-                                        : 'bg-slate-900/50 text-slate-400 border-white/5 hover:border-white/10'
+                                        : 'bg-[var(--bg-main)]/50 text-[var(--text-muted)] border-[var(--glass-border)] hover:border-[var(--text-muted)]/20'
                                 }`}
                             >
                                 {channel.toUpperCase()}
@@ -1029,11 +1029,11 @@ function CaixaContent() {
                                 className={`flex items-center gap-3 p-4 border rounded-2xl transition-all group ${
                                     paymentMethod === method
                                         ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.1)]'
-                                        : 'border-white/5 bg-slate-900/30 text-slate-400 hover:border-white/10 hover:bg-slate-900/50'
+                                        : 'border-[var(--glass-border)] bg-[var(--bg-card)] text-[var(--text-muted)] hover:border-[var(--text-muted)]/20 hover:bg-[var(--bg-main)]/50'
                                 }`}
                             >
                                 <div className={`p-2 rounded-lg transition-colors ${
-                                    paymentMethod === method ? 'bg-emerald-500 text-slate-950' : 'bg-white/5 text-slate-500 group-hover:text-slate-300'
+                                    paymentMethod === method ? 'bg-emerald-500 text-slate-950' : 'bg-[var(--bg-main)]/50 text-[var(--text-muted)] group-hover:text-[var(--text-main)]'
                                 }`}>
                                     {getPaymentIcon(method)}
                                 </div>
@@ -1100,16 +1100,16 @@ function CaixaContent() {
                             )}
 
                             {/* Verification Snapshot Card */}
-                            <div className="bg-slate-950/60 border border-white/5 rounded-[32px] p-8 space-y-6 relative overflow-hidden group">
+                            <div className="bg-[var(--bg-card)] border border-[var(--glass-border)] rounded-[32px] p-8 space-y-6 relative overflow-hidden group shadow-2xl shadow-[var(--glass-shadow)]">
                                 <div className="absolute top-0 right-0 p-8 opacity-5">
                                     <CreditCard size={120} strokeWidth={1} className="text-white" />
                                 </div>
                                 
                                 <div className="grid grid-cols-2 gap-8 relative z-10">
                                     <div className="space-y-1">
-                                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">Investimento Cliente</span>
+                                        <span className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-[0.2em]">Investimento Cliente</span>
                                         <div className="flex flex-col">
-                                            <span className="text-3xl font-black text-white tracking-tighter">
+                                            <span className="text-3xl font-black text-[var(--text-main)] tracking-tighter">
                                                 R$ {finalAmount.toFixed(2)}
                                             </span>
                                             {adjustmentText && (
@@ -1120,13 +1120,13 @@ function CaixaContent() {
                                         </div>
                                     </div>
 
-                                    <div className="space-y-1 border-l border-white/5 pl-8">
-                                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">Lucro Líquido Real</span>
+                                    <div className="space-y-1 border-l border-[var(--glass-border)] pl-8">
+                                        <span className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-[0.2em]">Lucro Líquido Real</span>
                                         <div className="flex flex-col text-right sm:text-left">
                                             <span className="text-3xl font-black text-emerald-500 tracking-tighter drop-shadow-[0_0_15px_rgba(16,185,129,0.3)]">
                                                 R$ {netValue.toFixed(2)}
                                             </span>
-                                            <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest mt-1">
+                                            <span className="text-[10px] font-black text-[var(--text-muted)]/60 uppercase tracking-widest mt-1">
                                                 Snapshot Gerado
                                             </span>
                                         </div>
@@ -1135,9 +1135,9 @@ function CaixaContent() {
 
                                 {/* Fee Breakdown */}
                                 {(mktTotal > 0 || adjustmentText) && (
-                                    <div className="pt-6 border-t border-white/5 grid grid-cols-1 gap-3 relative z-10">
+                                    <div className="pt-6 border-t border-[var(--glass-border)] grid grid-cols-1 gap-3 relative z-10">
                                         {mktTotal > 0 && (
-                                            <div className="flex justify-between items-center bg-white/2 px-4 py-2.5 rounded-xl border border-white/5">
+                                            <div className="flex justify-between items-center bg-[var(--bg-main)]/20 px-4 py-2.5 rounded-xl border border-[var(--glass-border)]">
                                                 <div className="flex flex-col">
                                                     <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none">Taxas do Canal ({selectedChannel})</span>
                                                     <span className="text-[8px] text-slate-600 font-bold uppercase mt-1 italic tracking-tight">
@@ -1157,7 +1157,7 @@ function CaixaContent() {
             </div>
 
             {/* Modal Footer (Action) */}
-            <div className="p-8 bg-slate-900/50 border-t border-white/5">
+            <div className="p-8 bg-[var(--bg-main)]/50 border-t border-[var(--glass-border)]">
                 <button
                     onClick={confirmSale}
                     className="w-full py-5 bg-emerald-600 text-slate-950 rounded-2xl font-black text-[12px] uppercase tracking-[0.2em] hover:bg-emerald-500 hover:shadow-[0_0_30px_rgba(16,185,129,0.4)] transition-all active:scale-95 flex items-center justify-center gap-3 group"
@@ -1173,13 +1173,13 @@ function CaixaContent() {
       {/* Accessories Modal */}
       {showAccessoriesModal && selectedItemForAccessories && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
-          <div className="bg-white rounded-[32px] shadow-[0_30px_70px_-15px_rgba(0,0,0,0.15)] max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-300">
-            <div className="p-8 pt-10 border-b border-slate-50 flex justify-between items-start">
+          <div className="bg-[var(--bg-card)] rounded-[32px] shadow-2xl shadow-[var(--glass-shadow)] max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden border border-[var(--glass-border)] animate-in zoom-in-95 duration-300">
+            <div className="p-8 pt-10 border-b border-[var(--glass-border)] flex justify-between items-start">
               <div>
-                <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase mb-2">Adicionar Acessórios</h2>
+                <h2 className="text-3xl font-black text-[var(--text-main)] tracking-tighter uppercase mb-2">Adicionar Acessórios</h2>
                 <div className="flex items-center gap-2">
                     <div className="h-0.5 w-8 bg-indigo-500 rounded-full"></div>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Personalização e Upgrade de Ativos</p>
+                    <p className="text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-widest">Personalização e Upgrade de Ativos</p>
                 </div>
               </div>
               <button 
@@ -1224,11 +1224,11 @@ function CaixaContent() {
                                   }}
                                   className="flex-shrink-0 flex flex-col items-start p-4 bg-white border border-slate-100 rounded-2xl hover:border-indigo-500 shadow-sm hover:shadow-lg hover:shadow-indigo-500/5 transition-all group min-w-[160px] active:scale-95"
                               >
-                                  <div className="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-500 mb-3 group-hover:scale-110 transition-transform">
+                                  <div className="w-8 h-8 bg-indigo-50/50 rounded-lg flex items-center justify-center text-indigo-500 mb-3 group-hover:scale-110 transition-transform">
                                       <Plus size={16} />
                                   </div>
-                                  <span className="text-[11px] font-black text-slate-900 uppercase tracking-tight line-clamp-1 mb-1">{acc.name}</span>
-                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-auto">R$ {Number(acc.unitPrice).toFixed(2)}</span>
+                                  <span className="text-[11px] font-black text-[var(--text-main)] uppercase tracking-tight line-clamp-1 mb-1">{acc.name}</span>
+                                  <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mt-auto">R$ {Number(acc.unitPrice).toFixed(2)}</span>
                               </button>
                           ))}
                       </div>
@@ -1353,10 +1353,10 @@ function CaixaContent() {
 export default function CaixaPage() {
   return (
     <Suspense fallback={
-        <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="min-h-screen bg-[var(--bg-main)] flex items-center justify-center">
             <div className="flex flex-col items-center gap-4">
                 <div className="w-12 h-12 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Iniciando Checkout...</p>
+                <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">Iniciando Checkout...</p>
             </div>
         </div>
     }>
