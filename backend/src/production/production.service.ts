@@ -33,14 +33,6 @@ export class ProductionService {
         if (!telemetry || telemetry.length === 0) return;
 
         const printers = await this.printerRepository.find();
-        const activeJobs = await this.printJobRepository.find({
-            where: [
-                { status: PrintStatus.PRINTING },
-                { status: PrintStatus.WAITING },
-                { status: PrintStatus.PAUSED }
-            ],
-            relations: ['printer']
-        });
 
         for (const haPrinter of telemetry) {
             // Match printer
@@ -60,24 +52,49 @@ export class ProductionService {
 
             if (!dbPrinter) continue;
 
-            // Find current job for this printer
-            const job = activeJobs.find(j => j.printer?.id === dbPrinter.id);
+            // Find current job for this printer — REAL TIME CHECK to avoid duplicates
+            const job = await this.printJobRepository.findOne({
+                where: [
+                    { printer: { id: dbPrinter.id }, status: PrintStatus.PRINTING },
+                    { printer: { id: dbPrinter.id }, status: PrintStatus.WAITING },
+                    { printer: { id: dbPrinter.id }, status: PrintStatus.PAUSED }
+                ],
+                relations: ['printer']
+            });
 
             if (haPrinter.status === 'printing') {
                 if (job && job.status !== PrintStatus.PRINTING) {
                     await this.updateJobStatus(job.id, PrintStatus.PRINTING);
                 } else if (!job) {
+                    // Start recording only if it's a valid file name (not empty or unknown)
+                    const fileName = haPrinter.file?.trim();
+                    if (!fileName || fileName === '—' || fileName === 'unknown') continue;
+
+                    // Double check if we recently completed this EXACT file to avoid bounce spikes
+                    const recentCompleted = await this.printJobRepository.findOne({
+                        where: { 
+                            printer: { id: dbPrinter.id }, 
+                            externalFileName: fileName,
+                            status: PrintStatus.COMPLETED
+                        },
+                        order: { completedAt: 'DESC' }
+                    });
+
+                    if (recentCompleted && (Date.now() - new Date(recentCompleted.completedAt).getTime() < 30000)) {
+                        // Avoid duplicates if completed in the last 30s (anti-bounce)
+                        continue;
+                    }
+
                     // === AUTOMATIC RECORDING OF EXTERNAL PRINTS ===
-                    // Printer is running outside the queue - create an external job record
-                    this.logger.log(`External print detected on ${dbPrinter.name}: "${haPrinter.file}"`);
+                    this.logger.log(`External print detected on ${dbPrinter.name}: "${fileName}"`);
                     
                     const externalJob = this.printJobRepository.create({
                         printer: dbPrinter,
                         status: PrintStatus.PRINTING,
                         startedAt: new Date(),
                         isExternal: true,
-                        externalFileName: haPrinter.file,
-                        priority: 5 // Low priority for external tracking
+                        externalFileName: fileName,
+                        priority: 5
                     });
                     
                     await this.printJobRepository.save(externalJob);
