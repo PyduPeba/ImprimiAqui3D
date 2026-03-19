@@ -67,7 +67,20 @@ export class ProductionService {
                 if (job && job.status !== PrintStatus.PRINTING) {
                     await this.updateJobStatus(job.id, PrintStatus.PRINTING);
                 } else if (!job) {
-                    // No assigned job — printer is running outside the queue, nothing to do
+                    // === AUTOMATIC RECORDING OF EXTERNAL PRINTS ===
+                    // Printer is running outside the queue - create an external job record
+                    this.logger.log(`External print detected on ${dbPrinter.name}: "${haPrinter.file}"`);
+                    
+                    const externalJob = this.printJobRepository.create({
+                        printer: dbPrinter,
+                        status: PrintStatus.PRINTING,
+                        startedAt: new Date(),
+                        isExternal: true,
+                        externalFileName: haPrinter.file,
+                        priority: 5 // Low priority for external tracking
+                    });
+                    
+                    await this.printJobRepository.save(externalJob);
                 }
             } else if (haPrinter.status === 'paused') {
                 if (job && job.status === PrintStatus.PRINTING) {

@@ -42,13 +42,15 @@ interface LivePrinter {
 
 interface PrintJob {
   id: string;
-  saleItemId: string;
+  saleItemId: string | null;
   status: 'PRINTING' | 'WAITING' | 'PAUSED' | 'COMPLETED' | 'FAILED';
   printer: { id: string; name: string } | null;
   priority: number;
   estimatedTime: number;
   progress: number;
   timeRemaining: string;
+  isExternal?: boolean;
+  externalFileName?: string;
 }
 
 interface PrintAlert {
@@ -486,15 +488,16 @@ export default function ProductionPage() {
                   const s = statusMap[job.status] ?? statusMap.WAITING;
                   const isThisAssigning = assigningJobId === job.id;
                   const isLoading = actionLoading === job.id;
+                  const jobName = job.isExternal ? (job.externalFileName || 'Trabalho Externo') : `Job #${job.id.slice(0, 8)}`;
 
                   return (
                     <div key={job.id} className="flex items-center gap-4 px-6 py-4 hover:bg-white/3 transition-colors group relative">
-                      <div className="w-7 h-7 rounded-lg bg-slate-800 border border-white/8 flex items-center justify-center text-[10px] font-black text-slate-500 shrink-0">
+                      <div className={`w-7 h-7 rounded-lg ${job.isExternal ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-slate-800 border-white/8 text-slate-500'} border flex items-center justify-center text-[10px] font-black shrink-0`}>
                         {i + 1}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <p className="text-sm font-bold text-slate-200 truncate">Job #{job.id.slice(0, 8)}</p>
+                          <p className={`text-sm font-bold ${job.isExternal ? 'text-blue-300' : 'text-slate-200'} truncate`}>{jobName}</p>
                           <span className={`shrink-0 text-[8px] font-black uppercase px-1.5 py-0.5 rounded-sm border ${s.bg} ${s.color}`}>
                             {s.label}
                           </span>

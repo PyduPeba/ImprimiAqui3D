@@ -15,8 +15,14 @@ export class PrintJob {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column({ type: 'uuid' })
+    @Column({ type: 'uuid', nullable: true })
     saleItemId: string;
+
+    @Column({ type: 'boolean', default: false })
+    isExternal: boolean;
+
+    @Column({ type: 'string', nullable: true })
+    externalFileName: string;
 
     @ManyToOne(() => Printer, { nullable: true })
     printer: Printer;
