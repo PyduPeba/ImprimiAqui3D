@@ -21,7 +21,7 @@ export class PrintJob {
     @Column({ type: 'boolean', default: false })
     isExternal: boolean;
 
-    @Column({ type: 'string', nullable: true })
+    @Column({ nullable: true })
     externalFileName: string;
 
     @ManyToOne(() => Printer, { nullable: true })
