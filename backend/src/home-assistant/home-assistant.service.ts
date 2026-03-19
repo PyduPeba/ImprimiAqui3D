@@ -38,16 +38,16 @@ export class HomeAssistantService {
             abort:  `button.${baseEntityId}_stop_print`,
         };
 
-        // Flashforge AD5X uses different naming convention
-        const flashforgeEntityMap: Record<PrinterCommand, string> = {
-            pause:  `button.${baseEntityId}_pause`,
-            resume: `button.${baseEntityId}_continue`,
-            abort:  `button.${baseEntityId}_abort`,
+        // Flashforge AD5X: support both old and new (GhostTypes) integration naming
+        const flashforgeEntityMap: Record<PrinterCommand, string[]> = {
+            pause:  [`button.${baseEntityId}_pause_print`, `button.${baseEntityId}_pause`],
+            resume: [`button.${baseEntityId}_resume_print`, `button.${baseEntityId}_continue`],
+            abort:  [`button.${baseEntityId}_cancel_print`, `button.${baseEntityId}_abort`],
         };
 
         // Detect Flashforge by entity prefix naming convention
-        const isFlashforge = baseEntityId.includes('ad5x') || baseEntityId.includes('ff_');
-        const entityId = isFlashforge ? flashforgeEntityMap[command] : entityMap[command];
+        const isFlashforge = baseEntityId.includes('ad5x') || baseEntityId.includes('ff_') || baseEntityId.includes('flashforge');
+        const entityId = isFlashforge ? flashforgeEntityMap[command][0] : entityMap[command];
 
         this.logger.log(`Sending HA command: ${command} → entity: ${entityId}`);
 
@@ -73,9 +73,9 @@ export class HomeAssistantService {
             // Pass 1: Identificar as impressoras pelos sensores de status base
             for (const state of states) {
                 let baseId = '';
-                if (state.entity_id.endsWith('_status') || state.entity_id.endsWith('_print_status')) {
-                    if (state.entity_id.includes('ad5x') || state.entity_id.includes('flashforge')) {
-                        baseId = state.entity_id.replace('_status', '').replace('_print', '');
+                if (state.entity_id.endsWith('_status') || state.entity_id.endsWith('_print_status') || state.entity_id.endsWith('_machine_status')) {
+                    if (state.entity_id.includes('ad5x') || state.entity_id.includes('flashforge') || state.entity_id.includes('ff_')) {
+                        baseId = state.entity_id.replace('_status', '').replace('_print', '').replace('_machine', '');
                     } else if (state.entity_id.includes('centauri') || state.entity_id.includes('elegoo')) {
                         baseId = state.entity_id.replace('_print_status', '');
                     }
@@ -99,16 +99,16 @@ export class HomeAssistantService {
             for (const state of states) {
                 for (const [baseId, printer] of printersMap.entries()) {
                     if (state.entity_id.startsWith(baseId)) {
-                        if (state.entity_id.endsWith('_file_name') || state.entity_id.endsWith('_file')) { 
+                        if (state.entity_id.endsWith('_file_name') || state.entity_id.endsWith('_file') || state.entity_id.endsWith('_current_file')) { 
                             printer.file = (state.state === 'unknown' || state.state === '') ? '—' : state.state; 
                         }
-                        if (state.entity_id.endsWith('_job_percentage')) { 
+                        if (state.entity_id.endsWith('_job_percentage') || state.entity_id.endsWith('_print_progress')) { 
                             printer.progress = parseInt(state.state) || 0; 
                         }
-                        if (state.entity_id.endsWith('_current_print_time')) { 
+                        if (state.entity_id.endsWith('_current_print_time') || state.entity_id.endsWith('_elapsed_time')) { 
                             printer._current = parseFloat(state.state); 
                         }
-                        if (state.entity_id.endsWith('_remaining_print_time')) { 
+                        if (state.entity_id.endsWith('_remaining_print_time') || state.entity_id.endsWith('_remaining_time')) { 
                             printer._remain = parseFloat(state.state); 
                         }
                     }
