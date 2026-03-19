@@ -20,7 +20,8 @@ import {
   RefreshCw,
   ChevronRight,
   Flame,
-  Timer
+  Timer,
+  Trash2
 } from 'lucide-react';
 import { useSocket } from '@/hooks/useSocket';
 import { MaintenanceTab } from './tabs/MaintenanceTab';
@@ -347,6 +348,17 @@ export default function ProductionPage() {
     }
   };
 
+  const handleClearHistory = async () => {
+    if (!confirm('Tem certeza que deseja limpar todo o histórico de impressões concluídas e falhadas?')) return;
+    setLoading(true);
+    try {
+      await productionService.clearHistory();
+      await loadData();
+    } catch { /* silent */ } finally {
+      setLoading(false);
+    }
+  };
+
   // KPIs
   const activePrinters = printers.filter(p => p.status === 'printing').length;
   const pausedPrinters = printers.filter(p => p.status === 'paused').length;
@@ -468,7 +480,18 @@ export default function ProductionPage() {
                   <Layers size={14} className="text-slate-500" />
                   <h2 className="text-xs font-black text-slate-300 uppercase tracking-widest">Fila de Impressão</h2>
                 </div>
-                <span className="text-[9px] text-slate-500 font-bold">{jobs.length} trabalhos</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-[9px] text-slate-500 font-bold">{jobs.length} trabalhos</span>
+                  {jobs.some(j => j.status === 'COMPLETED' || j.status === 'FAILED') && (
+                    <button 
+                      onClick={handleClearHistory}
+                      className="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg transition-colors flex items-center gap-1.5 text-[8px] font-black uppercase"
+                      title="Limpar concluídos"
+                    >
+                      <Trash2 size={10} /> Limpar
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="divide-y divide-white/4">
@@ -477,7 +500,7 @@ export default function ProductionPage() {
                     <Layers size={22} className="mb-2 opacity-30" />
                     <p className="text-[10px] font-bold uppercase tracking-widest">Fila vazia</p>
                   </div>
-                ) : jobs.map((job, i) => {
+                ) : jobs.slice(0, 10).map((job, i) => {
                   const statusMap = {
                     PRINTING: { label: 'Imprimindo', color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
                     WAITING:  { label: 'Aguardando', color: 'text-slate-400', bg: 'bg-slate-700/40 border-slate-600/20' },

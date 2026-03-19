@@ -52,5 +52,9 @@ export const productionService = {
     async createMaintenanceLog(data: any) {
         const response = await api.post('/production/maintenance', data);
         return response.data;
+    },
+    async clearHistory() {
+        const response = await api.delete('/production/jobs/clear');
+        return response.data;
     }
 };

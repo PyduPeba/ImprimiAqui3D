@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { PrintJob } from './entities/print-job.entity';
 import { Printer } from './entities/printer.entity';
 import { MaintenanceLog } from './entities/maintenance-log.entity';
@@ -347,5 +347,12 @@ export class ProductionService {
         await this.printerRepository.save(printer);
 
         return savedLog;
+    }
+
+    async clearCompletedJobs() {
+        await this.printJobRepository.delete({
+            status: In([PrintStatus.COMPLETED, PrintStatus.FAILED])
+        });
+        return { success: true };
     }
 }

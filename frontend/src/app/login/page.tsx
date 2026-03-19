@@ -101,10 +101,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center relative overflow-hidden bg-slate-950">
+    <div className="min-h-screen w-full flex items-center justify-center relative overflow-hidden bg-[var(--bg-main)] transition-colors duration-500">
       {/* Background Orbs */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-500/10 blur-[120px] rounded-full animate-pulse" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/10 blur-[120px] rounded-full animate-pulse" />
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-500/10 blur-[120px] rounded-full animate-pulse opacity-50 dark:opacity-100" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/10 blur-[120px] rounded-full animate-pulse opacity-50 dark:opacity-100" />
 
       <div className="w-full max-w-md p-8 relative z-10 transition-all duration-500 animate-in fade-in slide-in-from-bottom-8">
         {/* Logo Section */}
@@ -117,17 +117,17 @@ export default function LoginPage() {
             </div>
           )}
           
-          <h1 className="text-3xl font-bold text-white tracking-tight text-center">
+          <h1 className="text-3xl font-bold text-[var(--text-main)] tracking-tight text-center">
             {branding.name || (
                 <>Imprimi<span className="text-emerald-500">Aqui</span>3D</>
             )}
           </h1>
-          <p className="text-slate-400 mt-2 text-sm font-medium">Gestão inteligente para sua produção 3D</p>
+          <p className="text-[var(--text-muted)] mt-2 text-sm font-medium">Gestão inteligente para sua produção 3D</p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 p-8 rounded-3xl shadow-2xl">
-          <h2 className="text-xl font-bold text-white mb-6">Bem-vindo de volta!</h2>
+        <div className="bg-[var(--bg-card)] backdrop-blur-xl border border-[var(--glass-border)] p-8 rounded-3xl shadow-[var(--glass-shadow)] transition-all duration-300">
+          <h2 className="text-xl font-bold text-[var(--text-main)] mb-6">Bem-vindo de volta!</h2>
           
           {loginError && (
               <div className="mb-6 bg-rose-500/10 border border-rose-500/20 text-rose-400 px-4 py-3 rounded-xl flex items-start gap-3 animate-in fade-in zoom-in-95 duration-300">
@@ -139,15 +139,15 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             {/* Email Field */}
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-300 ml-1">E-mail</label>
+              <label className="text-sm font-semibold text-[var(--text-main)] opacity-80 ml-1">E-mail</label>
               <div className="relative group">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-500 transition-colors" size={18} />
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] group-focus-within:text-emerald-500 transition-colors" size={18} />
                 <input
                   {...register('email')}
                   type="email"
                   placeholder="exemplo@gmail.com"
                   className={cn(
-                    "w-full bg-slate-950/50 border border-slate-800 rounded-xl py-3 pl-12 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none",
+                    "w-full bg-[var(--bg-main)] border border-[var(--glass-border)] rounded-xl py-3 pl-12 pr-4 text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none",
                     errors.email && "border-rose-500/50 focus:border-rose-500 focus:ring-rose-500/10"
                   )}
                 />
@@ -158,24 +158,24 @@ export default function LoginPage() {
             {/* Password Field */}
             <div className="space-y-2">
               <div className="flex justify-between items-center ml-1">
-                <label className="text-sm font-semibold text-slate-300">Senha</label>
+                <label className="text-sm font-semibold text-[var(--text-main)] opacity-80">Senha</label>
                 <button type="button" className="text-xs font-semibold text-emerald-500 hover:text-emerald-400 transition-colors">Esqueceu a senha?</button>
               </div>
               <div className="relative group">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-500 transition-colors" size={18} />
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] group-focus-within:text-emerald-500 transition-colors" size={18} />
                 <input
                   {...register('password')}
                   type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
                   className={cn(
-                    "w-full bg-slate-950/50 border border-slate-800 rounded-xl py-3 pl-12 pr-12 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none",
+                    "w-full bg-[var(--bg-main)] border border-[var(--glass-border)] rounded-xl py-3 pl-12 pr-12 text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none",
                     errors.password && "border-rose-500/50 focus:border-rose-500 focus:ring-rose-500/10"
                   )}
                 />
                 <button 
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors"
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -190,11 +190,11 @@ export default function LoginPage() {
                   {...register('rememberMe')}
                   type="checkbox"
                   id="rememberMe"
-                  className="peer appearance-none w-5 h-5 bg-slate-950/50 border border-slate-800 rounded-md checked:bg-emerald-500 checked:border-emerald-500 cursor-pointer transition-all outline-none"
+                  className="peer appearance-none w-5 h-5 bg-[var(--bg-main)] border border-[var(--glass-border)] rounded-md checked:bg-emerald-500 checked:border-emerald-500 cursor-pointer transition-all outline-none"
                 />
                 <CheckCircle2 size={12} className="absolute inset-0 m-auto text-white opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity" />
               </div>
-              <label htmlFor="rememberMe" className="text-sm text-slate-400 cursor-pointer select-none font-medium">Lembrar minha conta</label>
+              <label htmlFor="rememberMe" className="text-sm text-[var(--text-muted)] cursor-pointer select-none font-medium">Lembrar minha conta</label>
             </div>
 
             {/* Submit Button */}
@@ -214,7 +214,7 @@ export default function LoginPage() {
         </div>
 
         {/* Footer info */}
-        <p className="text-center text-slate-500 text-xs mt-8 font-medium">
+        <p className="text-center text-[var(--text-muted)] opacity-60 text-xs mt-8 font-medium">
           &copy; 2026 ImprimiAqui3D. Desenvolvido para Advanced Agentic Coding.
         </p>
       </div>

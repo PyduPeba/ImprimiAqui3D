@@ -89,4 +89,9 @@ export class ProductionController {
     updateJobStatus(@Param('id') id: string, @Body() body: { status: any }) {
         return this.productionService.updateJobStatus(id, body.status);
     }
+
+    @Delete('jobs/clear')
+    clearCompletedJobs() {
+        return this.productionService.clearCompletedJobs();
+    }
 }
