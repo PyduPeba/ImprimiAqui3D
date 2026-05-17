@@ -15,7 +15,8 @@ import {
   ChevronRight,
   TrendingUp,
   Box,
-  FileText
+  FileText,
+  BarChart3
 } from 'lucide-react';
 import { resellersService } from '@/services/resellers.service';
 import { catalogService } from '@/services/catalog.service';
