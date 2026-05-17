@@ -35,4 +35,10 @@ export const catalogService = {
         const response = await api.delete(`/products/categories/${id}`);
         return response.data;
     },
+
+    async getLowStock() {
+        const response = await api.get('/products/low-stock');
+        return response.data;
+    },
 };
+

@@ -15,7 +15,8 @@ import {
   LogOut,
   Palette,
   ShoppingBag,
-  Receipt
+  Receipt,
+  Store
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -29,6 +30,7 @@ const menuItems = [
   { icon: Layers, label: 'Catálogo', href: '/catalogo' },
   { icon: ShoppingBag, label: 'Acessórios', href: '/acessorios' },
   { icon: Users, label: 'Clientes', href: '/clientes' },
+  { icon: Store, label: 'Revendedores', href: '/revendedores' },
   { icon: BarChart3, label: 'Relatórios', href: '/relatorios' },
   { icon: Settings, label: 'Configurações', href: '/configuracoes' },
 ];

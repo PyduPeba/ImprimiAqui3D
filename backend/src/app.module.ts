@@ -24,6 +24,7 @@ import { MapGeneratorModule } from './map-generator/map-generator.module';
 import { UsersModule } from './users/users.module';
 import { HomeAssistantService } from './home-assistant/home-assistant.service';
 import { HomeAssistantModule } from './home-assistant/home-assistant.module';
+import { ResellersModule } from './resellers/resellers.module';
 
 @Module({
   imports: [
@@ -78,6 +79,7 @@ import { HomeAssistantModule } from './home-assistant/home-assistant.module';
     MapGeneratorModule,
     UsersModule,
     HomeAssistantModule,
+    ResellersModule,
   ],
   controllers: [AppController],
   providers: [AppService, HomeAssistantService],

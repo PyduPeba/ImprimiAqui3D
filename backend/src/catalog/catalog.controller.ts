@@ -12,6 +12,11 @@ export class CatalogController {
         return this.catalogService.findAll();
     }
 
+    @Get('low-stock')
+    findLowStock() {
+        return this.catalogService.findLowStock();
+    }
+
     @Get(':id')
     findOne(@Param('id') id: string) {
         return this.catalogService.findOne(id);

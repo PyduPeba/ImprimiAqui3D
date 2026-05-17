@@ -46,6 +46,7 @@ export default function CatalogPage() {
   const [formData, setFormData] = useState({
     id: null as string | null,
     name: '',
+    sku: '',
     description: '',
     categoryId: '',
     weightGrams: 0,
@@ -53,6 +54,12 @@ export default function CatalogPage() {
     defaultMaterialId: '',
     fixedPrice: 0,
     profitMargin: 0,
+    productionCost: 0,
+    productionCostManualOverride: false,
+    salePrice: 0,
+    commissionPercent: 0,
+    stockQuantity: 0,
+    minStockAlert: 0,
     imageUrl: '',
   });
 
@@ -176,6 +183,7 @@ export default function CatalogPage() {
       setFormData({
         id: product.id,
         name: product.name,
+        sku: product.sku || '',
         description: product.description || '',
         categoryId: product.category?.id || '',
         weightGrams: Number(product.weightGrams),
@@ -183,12 +191,19 @@ export default function CatalogPage() {
         defaultMaterialId: product.defaultMaterial?.id || '',
         fixedPrice: Number(product.fixedPrice) || 0,
         profitMargin: Number(product.profitMargin) || 0,
+        productionCost: Number(product.productionCost) || 0,
+        productionCostManualOverride: product.productionCostManualOverride || false,
+        salePrice: Number(product.salePrice) || 0,
+        commissionPercent: Number(product.commissionPercent) || 0,
+        stockQuantity: Number(product.stockQuantity) || 0,
+        minStockAlert: Number(product.minStockAlert) || 0,
         imageUrl: product.imageUrl || '',
       });
     } else {
       setFormData({
         id: null,
         name: '',
+        sku: '',
         description: '',
         categoryId: categories[0]?.id || '',
         weightGrams: 0,
@@ -196,6 +211,12 @@ export default function CatalogPage() {
         defaultMaterialId: materials[0]?.id || '',
         fixedPrice: 0,
         profitMargin: 0,
+        productionCost: 0,
+        productionCostManualOverride: false,
+        salePrice: 0,
+        commissionPercent: 0,
+        stockQuantity: 0,
+        minStockAlert: 0,
         imageUrl: '',
       });
     }
@@ -350,9 +371,29 @@ export default function CatalogPage() {
 
              <div className="p-5 pt-2">
                 <h3 className="font-black text-white text-lg tracking-tight mb-1 group-hover:text-emerald-400 transition-colors uppercase leading-tight truncate">{product.name}</h3>
-                <p className="text-[11px] text-slate-500 font-bold line-clamp-2 mb-4 h-8 leading-relaxed">{product.description || 'Nenhuma descrição detalhada disponível para este item.'}</p>
-                
-                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/5">
+                {product.sku && <p className="text-[9px] text-slate-600 font-black uppercase tracking-widest mb-1">SKU: {product.sku}</p>}
+                <p className="text-[11px] text-slate-500 font-bold line-clamp-2 mb-3 h-8 leading-relaxed">{product.description || 'Nenhuma descrição disponível.'}</p>
+
+                {/* Preço e Estoque */}
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    {product.salePrice > 0 && (
+                      <span className="text-emerald-400 font-black text-lg">R$ {Number(product.salePrice).toFixed(2)}</span>
+                    )}
+                    {product.productionCost > 0 && (
+                      <span className="text-[10px] text-slate-600 font-bold block">Custo: R$ {Number(product.productionCost).toFixed(2)}</span>
+                    )}
+                  </div>
+                  <div className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border ${
+                    product.stockQuantity === 0 ? 'bg-rose-500/10 border-rose-500/30 text-rose-400' :
+                    (product.minStockAlert && product.stockQuantity <= product.minStockAlert) ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' :
+                    'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                  }`}>
+                    {product.stockQuantity === 0 ? '⚠ Sem estoque' : `Estoque: ${product.stockQuantity}`}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 pt-3 border-t border-white/5">
                    <div className="flex flex-col">
                       <span className="text-[9px] text-slate-600 font-black uppercase tracking-widest mb-1 flex items-center gap-1">
                         <Weight size={10} /> Peso
@@ -548,6 +589,69 @@ export default function CatalogPage() {
                       />
                       <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 font-black">X</span>
                    </div>
+                </div>
+
+                {/* Novos campos financeiros */}
+                <div className="border-t border-white/5 pt-5 space-y-4">
+                  <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">Precificação & Estoque</p>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Custo de Produção (R$)</label>
+                      <input type="number" step="0.01" value={formData.productionCost || ''}
+                        onChange={(e) => setFormData({...formData, productionCost: Number(e.target.value), productionCostManualOverride: true})}
+                        className="glass-input w-full font-bold text-amber-400" placeholder="Auto-calculado" />
+                      {!formData.productionCostManualOverride && <p className="text-[9px] text-slate-600 mt-1">Calculado automaticamente</p>}
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Preço de Venda (R$)</label>
+                      <input type="number" step="0.01" value={formData.salePrice || ''}
+                        onChange={(e) => setFormData({...formData, salePrice: Number(e.target.value)})}
+                        className="glass-input w-full font-black text-emerald-400" placeholder="0,00" />
+                    </div>
+                  </div>
+
+                  {formData.salePrice > 0 && formData.productionCost > 0 && (
+                    <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-3 flex items-center justify-between">
+                      <span className="text-[10px] text-slate-400 font-black uppercase">Margem de Lucro</span>
+                      <span className="text-emerald-400 font-black text-lg">
+                        {(((formData.salePrice - formData.productionCost) / formData.salePrice) * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Estoque (unid.)</label>
+                      <input type="number" value={formData.stockQuantity}
+                        onChange={(e) => setFormData({...formData, stockQuantity: Number(e.target.value)})}
+                        className="glass-input w-full font-bold" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Alerta Mínimo</label>
+                      <input type="number" value={formData.minStockAlert || ''}
+                        onChange={(e) => setFormData({...formData, minStockAlert: Number(e.target.value)})}
+                        className="glass-input w-full font-bold" placeholder="Ex: 5" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">SKU / Código</label>
+                      <input type="text" value={formData.sku}
+                        onChange={(e) => setFormData({...formData, sku: e.target.value})}
+                        className="glass-input w-full font-bold" placeholder="Ex: PROD-001" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Comissão Revendedor (%)</label>
+                      <div className="relative">
+                        <input type="number" step="0.01" value={formData.commissionPercent || ''}
+                          onChange={(e) => setFormData({...formData, commissionPercent: Number(e.target.value)})}
+                          className="glass-input w-full font-black text-indigo-400" placeholder="Ex: 10" />
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 font-black">%</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex gap-4 pt-6 border-t border-white/5">

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, LessThanOrEqual } from 'typeorm';
 import { Product } from './entities/product.entity';
 import { Category } from './entities/category.entity';
 import { Material } from '../inventory/entities/material.entity';
@@ -18,6 +18,38 @@ export class CatalogService {
         private systemConfigService: SystemConfigService,
     ) { }
 
+    // ─── Helpers ─────────────────────────────────────────
+
+    /**
+     * Calcula o custo de produção com base no peso e no material padrão.
+     * Fator de energia/desgaste: 1.2 (configurável no futuro via SystemConfigService).
+     */
+    private calculateProductionCost(weightGrams: number, material: Material | null): number {
+        if (!material || !material.pricePerGram) return 0;
+        const energyFactor = 1.2;
+        return Number(weightGrams) * Number(material.pricePerGram) * energyFactor;
+    }
+
+    private coerceProductFields(rest: any): void {
+        if (rest.weightGrams !== undefined) rest.weightGrams = Number(rest.weightGrams);
+        if (rest.printTimeMinutes !== undefined) rest.printTimeMinutes = Number(rest.printTimeMinutes);
+        if (rest.stockQuantity !== undefined) rest.stockQuantity = Number(rest.stockQuantity);
+        if (rest.minStockAlert !== undefined && rest.minStockAlert !== null && rest.minStockAlert !== '')
+            rest.minStockAlert = Number(rest.minStockAlert);
+        if (rest.commissionPercent !== undefined) rest.commissionPercent = Number(rest.commissionPercent);
+        if (rest.salePrice !== undefined && rest.salePrice !== null && rest.salePrice !== '')
+            rest.salePrice = Number(rest.salePrice);
+        else delete rest.salePrice;
+        if (rest.productionCost !== undefined && rest.productionCost !== null && rest.productionCost !== '')
+            rest.productionCost = Number(rest.productionCost);
+        else delete rest.productionCost;
+        if (rest.fixedPrice !== undefined && rest.fixedPrice !== null && rest.fixedPrice !== '')
+            rest.fixedPrice = Number(rest.fixedPrice);
+        else delete rest.fixedPrice;
+    }
+
+    // ─── Produtos ─────────────────────────────────────────
+
     async findAll() {
         return this.productRepository.find({ relations: ['defaultMaterial', 'category'] });
     }
@@ -31,24 +63,26 @@ export class CatalogService {
         return product;
     }
 
+    async findLowStock() {
+        const products = await this.productRepository.find({
+            relations: ['category'],
+        });
+        return products.filter(
+            (p) => p.minStockAlert !== null && p.minStockAlert !== undefined && p.stockQuantity <= p.minStockAlert,
+        );
+    }
+
     async create(data: any, user: any) {
         console.log('CatalogService: Creating product', data);
         const { defaultMaterialId, categoryId, id, ...rest } = data;
-
-        // Coerção de campos numéricos
-        if (rest.weightGrams !== undefined) rest.weightGrams = Number(rest.weightGrams);
-        if (rest.printTimeMinutes !== undefined) rest.printTimeMinutes = Number(rest.printTimeMinutes);
-        if (rest.fixedPrice !== undefined && rest.fixedPrice !== null && rest.fixedPrice !== '') {
-            rest.fixedPrice = Number(rest.fixedPrice);
-        } else {
-            delete rest.fixedPrice;
-        }
+        this.coerceProductFields(rest);
 
         const product = this.productRepository.create(rest as object) as Product;
 
+        let material: Material | null = null;
         if (defaultMaterialId && typeof defaultMaterialId === 'string' && defaultMaterialId.length > 0) {
             try {
-                const material = await this.materialRepository.findOneBy({ id: defaultMaterialId });
+                material = await this.materialRepository.findOneBy({ id: defaultMaterialId });
                 if (material) product.defaultMaterial = material;
             } catch (err) {
                 console.error('Error finding material:', err);
@@ -62,6 +96,12 @@ export class CatalogService {
             } catch (err) {
                 console.error('Error finding category:', err);
             }
+        }
+
+        // Auto-calcular custo de produção se não foi passado manualmente
+        if (!product.productionCostManualOverride || product.productionCost === undefined || product.productionCost === null) {
+            product.productionCost = this.calculateProductionCost(product.weightGrams, material);
+            product.productionCostManualOverride = false;
         }
 
         const savedProduct = await this.productRepository.save(product);
@@ -80,24 +120,21 @@ export class CatalogService {
 
     async update(id: string, data: any, user: any) {
         const { defaultMaterialId, categoryId, id: _, ...rest } = data;
-
-        // Coerção de campos numéricos
-        if (rest.weightGrams !== undefined) rest.weightGrams = Number(rest.weightGrams);
-        if (rest.printTimeMinutes !== undefined) rest.printTimeMinutes = Number(rest.printTimeMinutes);
-        if (rest.fixedPrice !== undefined && rest.fixedPrice !== null && rest.fixedPrice !== '') {
-            rest.fixedPrice = Number(rest.fixedPrice);
-        } else {
-            delete rest.fixedPrice;
-        }
+        this.coerceProductFields(rest);
 
         const product = await this.findOne(id);
-        const oldProduct = JSON.parse(JSON.stringify(product)); // Deep copy to preserve values
+        const oldProduct = JSON.parse(JSON.stringify(product));
         Object.assign(product, rest);
+
+        let material: Material | null = product.defaultMaterial;
 
         if (defaultMaterialId && typeof defaultMaterialId === 'string' && defaultMaterialId.length > 0) {
             try {
-                const material = await this.materialRepository.findOneBy({ id: defaultMaterialId });
-                if (material) product.defaultMaterial = material;
+                const foundMaterial = await this.materialRepository.findOneBy({ id: defaultMaterialId });
+                if (foundMaterial) {
+                    product.defaultMaterial = foundMaterial;
+                    material = foundMaterial;
+                }
             } catch (err) {
                 console.error('Error finding material:', err);
             }
@@ -110,6 +147,11 @@ export class CatalogService {
             } catch (err) {
                 console.error('Error finding category:', err);
             }
+        }
+
+        // Recalcular custo de produção se não for override manual
+        if (!product.productionCostManualOverride) {
+            product.productionCost = this.calculateProductionCost(product.weightGrams, material);
         }
 
         const savedProduct = await this.productRepository.save(product);
@@ -140,7 +182,8 @@ export class CatalogService {
         return this.productRepository.remove(product);
     }
 
-    // Category methods
+    // ─── Categorias ───────────────────────────────────────
+
     async findAllCategories() {
         return this.categoryRepository.find({ order: { name: 'ASC' } });
     }
