@@ -777,54 +777,204 @@ export default function CatalogPage() {
           </div>
         </div>
       )}
-      {/* Image Preview Lightbox */}
+      {/* Product Detail Preview Modal */}
       {previewImage && (
         <div 
           className="fixed inset-0 bg-slate-950/90 backdrop-blur-2xl z-[200] flex items-center justify-center p-4 md:p-10 animate-in fade-in zoom-in duration-300"
           onClick={() => setPreviewImage(null)}
         >
-          <div className="absolute top-10 right-10 flex gap-4">
-             <button 
-               onClick={(e) => { e.stopPropagation(); openModal(previewImage); setPreviewImage(null); }}
-               className="w-12 h-12 rounded-full bg-white/10 hover:bg-emerald-500 text-white flex items-center justify-center transition-all border border-white/10"
-               title="Editar Produto"
-             >
-               <Edit2 size={20} />
-             </button>
-             <button 
-               onClick={(e) => { e.stopPropagation(); setPreviewImage(null); }}
-               className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all border border-white/10"
-               title="Fechar"
-             >
-               <X size={24} />
-             </button>
-          </div>
-
           <div 
-            className="relative max-w-5xl w-full max-h-full flex flex-col items-center"
+            className="relative max-w-6xl w-full max-h-[90vh] glass-card p-0 border-white/10 shadow-[0_0_80px_rgba(16,185,129,0.08)] overflow-hidden flex flex-col md:flex-row"
             onClick={(e) => e.stopPropagation()}
           >
-             <div className="glass-card p-2 border-white/10 shadow-2xl relative group overflow-hidden">
+            {/* Left: Image */}
+            <div className="md:w-[55%] w-full bg-slate-950/60 flex items-center justify-center p-6 md:p-8 relative group shrink-0">
+              {previewImage.imageUrl ? (
                 <img 
                   src={getImageUrl(previewImage.imageUrl) || ''} 
                   alt={previewImage.name} 
-                  className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
+                  className="max-w-full max-h-[75vh] object-contain rounded-2xl shadow-2xl"
                 />
-                
-                {/* Info Overlay */}
-                <div className="absolute bottom-6 left-6 right-6 p-6 bg-slate-950/40 backdrop-blur-md rounded-2xl border border-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                   <div className="flex justify-between items-end">
-                      <div>
-                         <h2 className="text-2xl font-black text-white uppercase tracking-tight mb-1">{previewImage.name}</h2>
-                         <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">{previewImage.category?.name || 'Sem Categoria'}</p>
-                      </div>
-                      <div className="text-right">
-                         <span className="block text-[10px] font-black text-slate-500 uppercase mb-1">Especificações</span>
-                         <span className="text-emerald-400 font-black text-sm">{previewImage.weightGrams}g • {previewImage.printTimeMinutes}m</span>
-                      </div>
-                   </div>
+              ) : (
+                <div className="flex flex-col items-center gap-4 opacity-30">
+                  <Layers size={80} strokeWidth={1} className="text-white" />
+                  <span className="text-xs font-black uppercase tracking-widest text-white">Sem Imagem</span>
                 </div>
-             </div>
+              )}
+
+              {/* Category badge */}
+              {previewImage.category && (
+                <div 
+                  className="absolute top-8 left-8 px-3 py-1.5 bg-slate-900/80 backdrop-blur rounded-xl text-[10px] font-black uppercase tracking-widest border border-white/10"
+                  style={{ color: previewImage.category.color || '#10b981' }}
+                >
+                  {previewImage.category.name}
+                </div>
+              )}
+            </div>
+
+            {/* Right: Product Details */}
+            <div className="md:w-[45%] w-full border-l border-white/5 flex flex-col max-h-[90vh]">
+              {/* Header */}
+              <div className="px-8 pt-8 pb-5 border-b border-white/5 bg-slate-900/30">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1 pr-4">
+                    <h2 className="text-2xl font-black text-white uppercase tracking-tight leading-tight mb-1">{previewImage.name}</h2>
+                    {previewImage.sku && (
+                      <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">SKU: {previewImage.sku}</span>
+                    )}
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); openModal(previewImage); setPreviewImage(null); }}
+                      className="w-10 h-10 rounded-xl bg-white/5 hover:bg-emerald-500 text-slate-400 hover:text-white flex items-center justify-center transition-all border border-white/10"
+                      title="Editar Produto"
+                    >
+                      <Edit2 size={16} />
+                    </button>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setPreviewImage(null); }}
+                      className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center transition-all border border-white/10"
+                      title="Fechar"
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Scrollable Content */}
+              <div className="flex-1 overflow-y-auto px-8 py-6 space-y-6">
+
+                {/* Description */}
+                {previewImage.description && (
+                  <div>
+                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-2">Descrição</span>
+                    <p className="text-slate-300 text-sm font-medium leading-relaxed">{previewImage.description}</p>
+                  </div>
+                )}
+
+                {/* Price Section */}
+                <div className="bg-white/5 border border-white/5 rounded-2xl p-5 space-y-4">
+                  <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest block">Precificação</span>
+                  
+                  <div className="flex items-baseline gap-3">
+                    {Number(previewImage.salePrice) > 0 ? (
+                      <span className="text-3xl font-black text-emerald-400">R$ {Number(previewImage.salePrice).toFixed(2)}</span>
+                    ) : Number(previewImage.fixedPrice) > 0 ? (
+                      <span className="text-3xl font-black text-emerald-400">R$ {Number(previewImage.fixedPrice).toFixed(2)}</span>
+                    ) : (
+                      <span className="text-xl font-bold text-slate-500">Sem preço definido</span>
+                    )}
+                  </div>
+
+                  {Number(previewImage.productionCost) > 0 && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-slate-500 font-bold">Custo de Produção</span>
+                      <span className="text-amber-400 font-black">R$ {Number(previewImage.productionCost).toFixed(2)}</span>
+                    </div>
+                  )}
+
+                  {/* Margins */}
+                  {Number(previewImage.salePrice) > 0 && Number(previewImage.productionCost) > 0 && (
+                    <div className="space-y-2 pt-3 border-t border-white/5">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">Margem Bruta</span>
+                        <span className="text-emerald-400 font-black">
+                          {(((Number(previewImage.salePrice) - Number(previewImage.productionCost)) / Number(previewImage.salePrice)) * 100).toFixed(1)}%
+                        </span>
+                      </div>
+
+                      {Number(previewImage.commissionPercent) > 0 && (
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">Margem Líquida (c/ Comissão)</span>
+                          <span className="text-indigo-400 font-black">
+                            {(((Number(previewImage.salePrice) - Number(previewImage.productionCost) - (Number(previewImage.salePrice) * Number(previewImage.commissionPercent) / 100)) / Number(previewImage.salePrice)) * 100).toFixed(1)}%
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">Markup</span>
+                        <span className="text-amber-400 font-black">
+                          {(((Number(previewImage.salePrice) - Number(previewImage.productionCost)) / Number(previewImage.productionCost)) * 100).toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Specs Grid */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-white/5 border border-white/5 rounded-xl p-4 text-center">
+                    <div className="flex items-center justify-center gap-1.5 mb-2">
+                      <Weight size={12} className="text-slate-500" />
+                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Peso</span>
+                    </div>
+                    <span className="text-white font-black text-lg">{previewImage.weightGrams}g</span>
+                  </div>
+                  <div className="bg-white/5 border border-white/5 rounded-xl p-4 text-center">
+                    <div className="flex items-center justify-center gap-1.5 mb-2">
+                      <Clock size={12} className="text-slate-500" />
+                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Tempo</span>
+                    </div>
+                    <span className="text-white font-black text-lg">{previewImage.printTimeMinutes}min</span>
+                  </div>
+                </div>
+
+                {/* Stock & Commission */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-white/5 border border-white/5 rounded-xl p-4 text-center">
+                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-2">Estoque</span>
+                    <span className={`font-black text-lg ${
+                      previewImage.stockQuantity === 0 ? 'text-rose-400' :
+                      (previewImage.minStockAlert && previewImage.stockQuantity <= previewImage.minStockAlert) ? 'text-amber-400' :
+                      'text-emerald-400'
+                    }`}>
+                      {previewImage.stockQuantity} un.
+                    </span>
+                    {previewImage.minStockAlert > 0 && (
+                      <span className="text-[9px] text-slate-600 font-bold block mt-1">Mín: {previewImage.minStockAlert}</span>
+                    )}
+                  </div>
+                  <div className="bg-white/5 border border-white/5 rounded-xl p-4 text-center">
+                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-2">Comissão</span>
+                    <span className="text-indigo-400 font-black text-lg">
+                      {Number(previewImage.commissionPercent) > 0 ? `${previewImage.commissionPercent}%` : '—'}
+                    </span>
+                    {Number(previewImage.commissionPercent) > 0 && Number(previewImage.salePrice) > 0 && (
+                      <span className="text-[9px] text-slate-600 font-bold block mt-1">
+                        R$ {(Number(previewImage.salePrice) * Number(previewImage.commissionPercent) / 100).toFixed(2)}/un.
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Material Info */}
+                {previewImage.defaultMaterial && (
+                  <div className="bg-white/5 border border-white/5 rounded-xl p-4">
+                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-2">Material Padrão</span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-white font-bold text-sm">{previewImage.defaultMaterial.name}</span>
+                      {previewImage.defaultMaterial.pricePerKg && (
+                        <span className="text-slate-400 text-xs font-bold">R$ {Number(previewImage.defaultMaterial.pricePerKg).toFixed(2)}/kg</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer Action */}
+              <div className="px-8 py-5 border-t border-white/5 bg-slate-900/30 shrink-0">
+                <button 
+                  onClick={(e) => { e.stopPropagation(); openModal(previewImage); setPreviewImage(null); }}
+                  className="btn-premium w-full py-3 shadow-emerald-500/20 justify-center"
+                >
+                  <Edit2 size={16} />
+                  <span>Editar Produto</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
