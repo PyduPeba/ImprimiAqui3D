@@ -37,7 +37,7 @@ export class ResellersService {
         if (rest.defaultCommissionPercent !== undefined)
             rest.defaultCommissionPercent = Number(rest.defaultCommissionPercent);
 
-        const reseller = this.resellerRepo.create(rest);
+        const reseller = this.resellerRepo.create(rest as object) as Reseller;
         const saved = await this.resellerRepo.save(reseller);
 
         await this.systemConfigService.logAction({
