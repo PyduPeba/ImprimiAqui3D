@@ -612,11 +612,29 @@ export default function CatalogPage() {
                   </div>
 
                   {formData.salePrice > 0 && formData.productionCost > 0 && (
-                    <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-3 flex items-center justify-between">
-                      <span className="text-[10px] text-slate-400 font-black uppercase">Margem de Lucro</span>
-                      <span className="text-emerald-400 font-black text-lg">
-                        {(((formData.salePrice - formData.productionCost) / formData.salePrice) * 100).toFixed(1)}%
-                      </span>
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-3">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">Margem Bruta (Venda)</span>
+                        <span className="text-emerald-400 font-black text-sm">
+                          {(((formData.salePrice - formData.productionCost) / formData.salePrice) * 100).toFixed(1)}%
+                        </span>
+                      </div>
+                      
+                      {formData.commissionPercent > 0 && (
+                        <div className="flex justify-between items-center text-xs pt-1">
+                          <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">Margem Líquida (c/ Comissão)</span>
+                          <span className="text-indigo-400 font-black text-sm">
+                            {(((formData.salePrice - formData.productionCost - (formData.salePrice * formData.commissionPercent / 100)) / formData.salePrice) * 100).toFixed(1)}%
+                          </span>
+                        </div>
+                      )}
+                      
+                      <div className="flex justify-between items-center text-xs pt-2 border-t border-white/5">
+                        <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">Markup (sobre o Custo)</span>
+                        <span className="text-amber-400 font-black text-sm">
+                          {(((formData.salePrice - formData.productionCost) / formData.productionCost) * 100).toFixed(1)}%
+                        </span>
+                      </div>
                     </div>
                   )}
 
