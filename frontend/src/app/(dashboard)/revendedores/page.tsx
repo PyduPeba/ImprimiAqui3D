@@ -141,14 +141,22 @@ export default function ResellersPage() {
   const [showSendProductModal, setShowSendProductModal] = useState(false);
   const [sendProductFilter, setSendProductFilter] = useState({ category: '', search: '' });
 
-  const [actionModal, setActionModal] = useState<{ type: 'sale' | 'return'; itemId: string; max: number; current: number } | null>(null);
-  const [actionQty, setActionQty] = useState(1);
+  const [settlementModal, setSettlementModal] = useState<{
+    itemId: string;
+    productName: string;
+    inPossession: number;
+    currentSold: number;
+    currentReturned: number;
+    unitPrice: number;
+    commissionPercent: number;
+  } | null>(null);
+  const [settlementForm, setSettlementForm] = useState({ sold: 0, returned: 0 });
 
   // ESC key to close modals/drawers
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (actionModal) setActionModal(null);
+        if (settlementModal) setSettlementModal(null);
         else if (showSendProductModal) setShowSendProductModal(false);
         else if (showResellerModal) setShowResellerModal(false);
         else if (showInventoryDrawer) setShowInventoryDrawer(false);
@@ -208,6 +216,11 @@ export default function ResellersPage() {
       toast.success('Produto enviado ao revendedor!');
       setShowSendProductModal(false);
       await loadResellerInventory(selectedReseller.id);
+      
+      // Atualiza catálogo no frontend para refletir estoque
+      const prods = await catalogService.getProducts();
+      setProducts(prods);
+
     } catch (err: any) {
       toast.error('Erro ao enviar produto: ' + err.message);
     } finally {
@@ -215,37 +228,37 @@ export default function ResellersPage() {
     }
   };
 
-  const handleRegisterSale = (itemId: string, currentSold: number, inPossession: number) => {
-    setActionModal({ type: 'sale', itemId, max: inPossession, current: currentSold });
-    setActionQty(1);
+  const handleOpenSettlement = (item: any) => {
+    setSettlementModal({
+      itemId: item.id,
+      productName: item.product.name,
+      inPossession: item.inPossession,
+      currentSold: item.quantitySold,
+      currentReturned: item.quantityReturned,
+      unitPrice: Number(item.unitPrice),
+      commissionPercent: Number(item.effectiveCommissionPercent)
+    });
+    setSettlementForm({ sold: 0, returned: 0 });
   };
 
-  const handleRegisterReturn = (itemId: string, currentReturned: number, inPossession: number) => {
-    setActionModal({ type: 'return', itemId, max: inPossession, current: currentReturned });
-    setActionQty(1);
-  };
-
-  const handleConfirmAction = async () => {
-    if (!actionModal) return;
-    if (actionQty <= 0 || actionQty > actionModal.max) return toast.error('Quantidade inválida');
+  const handleConfirmSettlement = async () => {
+    if (!settlementModal) return;
+    const totalSelected = settlementForm.sold + settlementForm.returned;
+    if (totalSelected <= 0 || totalSelected > settlementModal.inPossession) {
+      return toast.error('A soma de vendidos e devolvidos não pode exceder o total em posse.');
+    }
 
     setLoading(true);
     try {
-      if (actionModal.type === 'sale') {
-        await resellersService.updateInventoryItem(selectedReseller.id, actionModal.itemId, {
-          quantitySold: actionModal.current + actionQty
-        });
-        toast.success('Venda registrada!');
-      } else {
-        await resellersService.updateInventoryItem(selectedReseller.id, actionModal.itemId, {
-          quantityReturned: actionModal.current + actionQty
-        });
-        toast.success('Devolução registrada!');
-      }
+      await resellersService.updateInventoryItem(selectedReseller.id, settlementModal.itemId, {
+        quantitySold: settlementModal.currentSold + settlementForm.sold,
+        quantityReturned: settlementModal.currentReturned + settlementForm.returned
+      });
+      toast.success('Acerto registrado com sucesso!');
       await loadResellerInventory(selectedReseller.id);
-      setActionModal(null);
+      setSettlementModal(null);
     } catch (err) {
-      toast.error('Erro ao registrar ' + (actionModal.type === 'sale' ? 'venda' : 'devolução'));
+      toast.error('Erro ao registrar acerto');
     } finally {
       setLoading(false);
     }
@@ -627,12 +640,9 @@ export default function ResellersPage() {
                       <div className="text-amber-400 font-black text-sm">
                         Comissão a pagar: R$ {Number(item.commissionValue).toFixed(2)}
                       </div>
-                      <div className="flex gap-2">
-                        <button onClick={() => handleRegisterReturn(item.id, item.quantityReturned, item.inPossession)} disabled={item.inPossession <= 0} className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold transition-colors disabled:opacity-50">
-                          Devolução
-                        </button>
-                        <button onClick={() => handleRegisterSale(item.id, item.quantitySold, item.inPossession)} disabled={item.inPossession <= 0} className="px-4 py-2 rounded-lg bg-emerald-500 text-white text-xs font-bold hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-500/20 disabled:opacity-50">
-                          Registrar Venda
+                      <div>
+                        <button onClick={() => handleOpenSettlement(item)} disabled={item.inPossession <= 0} className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-black uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(245,158,11,0.2)] hover:shadow-[0_0_30px_rgba(245,158,11,0.4)] disabled:opacity-50 disabled:shadow-none">
+                          Acerto de Estoque
                         </button>
                       </div>
                     </div>
@@ -743,34 +753,62 @@ export default function ResellersPage() {
         document.body
       )}
 
-      {/* Modal de Ação (Venda/Devolução) */}
-      {mounted && actionModal && createPortal(
-        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center z-[220] p-4 animate-in zoom-in-95 duration-200" onClick={() => setActionModal(null)}>
-          <div className="glass-card max-w-sm w-full p-6 border-white/10 shadow-[0_0_50px_rgba(16,185,129,0.1)]" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-black text-white">
-                {actionModal.type === 'sale' ? 'Registrar Venda' : 'Registrar Devolução'}
-              </h3>
-              <button onClick={() => setActionModal(null)} className="text-slate-400 hover:text-white transition-colors"><X size={20}/></button>
+      {/* Modal de Ação (Venda/Devolução -> Acerto) */}
+      {mounted && settlementModal && createPortal(
+        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-xl flex items-center justify-center z-[220] p-4 animate-in zoom-in-95 duration-200" onClick={() => setSettlementModal(null)}>
+          <div className="glass-card max-w-md w-full p-8 border-amber-500/20 shadow-[0_0_80px_rgba(245,158,11,0.1)]" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-8 pb-4 border-b border-white/5">
+              <h3 className="text-2xl font-black text-white">Acerto de Estoque</h3>
+              <button onClick={() => setSettlementModal(null)} className="text-slate-400 hover:text-white transition-colors bg-white/5 w-8 h-8 flex items-center justify-center rounded-lg"><X size={20}/></button>
             </div>
             
-            <div className="space-y-4">
-              <div>
-                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Quantidade (Máx: {actionModal.max})</label>
-                <input 
-                  type="number" 
-                  min="1" 
-                  max={actionModal.max}
-                  value={actionQty}
-                  onChange={e => setActionQty(Number(e.target.value))}
-                  className="glass-input w-full text-2xl font-black text-center" 
-                />
+            <div className="mb-6 p-4 bg-slate-900/50 rounded-xl border border-white/5">
+              <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Produto</div>
+              <div className="text-lg font-black text-white">{settlementModal.productName}</div>
+              <div className="mt-2 flex justify-between">
+                <div>
+                  <div className="text-[9px] font-black text-slate-500 uppercase">Em Posse</div>
+                  <div className="text-amber-400 font-black">{settlementModal.inPossession} un.</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[9px] font-black text-slate-500 uppercase">Comissão</div>
+                  <div className="text-emerald-400 font-black">{settlementModal.commissionPercent}%</div>
+                </div>
               </div>
             </div>
 
-            <div className="flex gap-3 mt-8">
-              <button onClick={() => setActionModal(null)} className="flex-1 px-4 py-3 rounded-xl bg-white/5 font-bold text-slate-400 hover:text-white transition-colors">Cancelar</button>
-              <button onClick={handleConfirmAction} disabled={loading || actionQty < 1 || actionQty > actionModal.max} className="flex-1 btn-premium px-4 py-3 shadow-emerald-500/20 disabled:opacity-50">Confirmar</button>
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-xl">
+                <label className="block text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2 text-center">Devolvidos</label>
+                <div className="flex items-center justify-center gap-3">
+                  <button onClick={() => setSettlementForm(prev => ({...prev, returned: Math.max(0, prev.returned - 1)}))} className="w-8 h-8 rounded bg-white/5 text-white hover:bg-white/10 flex items-center justify-center font-bold">-</button>
+                  <input type="number" min="0" value={settlementForm.returned} onChange={e => setSettlementForm(prev => ({...prev, returned: Number(e.target.value)}))} className="bg-transparent border-none text-white font-black text-2xl w-12 text-center outline-none" />
+                  <button onClick={() => setSettlementForm(prev => ({...prev, returned: prev.returned + 1}))} className="w-8 h-8 rounded bg-white/5 text-white hover:bg-white/10 flex items-center justify-center font-bold">+</button>
+                </div>
+              </div>
+              <div className="p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-xl">
+                <label className="block text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-2 text-center">Vendidos</label>
+                <div className="flex items-center justify-center gap-3">
+                  <button onClick={() => setSettlementForm(prev => ({...prev, sold: Math.max(0, prev.sold - 1)}))} className="w-8 h-8 rounded bg-white/5 text-white hover:bg-white/10 flex items-center justify-center font-bold">-</button>
+                  <input type="number" min="0" value={settlementForm.sold} onChange={e => setSettlementForm(prev => ({...prev, sold: Number(e.target.value)}))} className="bg-transparent border-none text-white font-black text-2xl w-12 text-center outline-none" />
+                  <button onClick={() => setSettlementForm(prev => ({...prev, sold: prev.sold + 1}))} className="w-8 h-8 rounded bg-white/5 text-white hover:bg-white/10 flex items-center justify-center font-bold">+</button>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-5 bg-black/20 rounded-xl border border-white/5 text-center mb-8">
+              <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Comissão Gerada Neste Acerto</div>
+              <div className="text-3xl font-black text-amber-400">
+                R$ {(settlementForm.sold * settlementModal.unitPrice * (settlementModal.commissionPercent / 100)).toFixed(2)}
+              </div>
+              <div className="text-[10px] text-slate-600 font-bold mt-2">
+                Restante após acerto: {settlementModal.inPossession - (settlementForm.sold + settlementForm.returned)} un.
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={() => setSettlementModal(null)} className="w-1/3 px-4 py-4 rounded-xl bg-white/5 font-bold text-slate-400 hover:text-white transition-colors">Cancelar</button>
+              <button onClick={handleConfirmSettlement} disabled={loading || (settlementForm.sold + settlementForm.returned <= 0) || (settlementForm.sold + settlementForm.returned > settlementModal.inPossession)} className="w-2/3 bg-amber-500 hover:bg-amber-600 text-white font-black uppercase tracking-widest rounded-xl transition-colors disabled:opacity-50">Confirmar</button>
             </div>
           </div>
         </div>,
