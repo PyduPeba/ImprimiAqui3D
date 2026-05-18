@@ -44,6 +44,7 @@ export default function CatalogPage() {
   const [previewImage, setPreviewImage] = useState<any>(null);
   const [imageUrlInput, setImageUrlInput] = useState('');
   const [imageDownloading, setImageDownloading] = useState(false);
+  const [colorSearchTerm, setColorSearchTerm] = useState('');
   
   const [formData, setFormData] = useState({
     id: null as string | null,
@@ -643,12 +644,23 @@ export default function CatalogPage() {
                     {/* Available colors from inventory */}
                     {(formData.isMultiColor || formData.materialColors.length === 0) && (
                       <div className="bg-white/5 border border-white/5 rounded-xl p-3">
-                        <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest block mb-3">
+                        <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest block mb-2">
                           {formData.isMultiColor ? 'Adicionar Cores' : 'Selecionar Cor'}
                         </span>
+                        <div className="relative mb-2">
+                          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" size={12} />
+                          <input
+                            type="text"
+                            value={colorSearchTerm}
+                            onChange={(e) => setColorSearchTerm(e.target.value)}
+                            placeholder="Buscar filamento..."
+                            className="w-full bg-slate-900/60 border border-white/5 rounded-lg pl-7 pr-3 py-1.5 text-xs text-white placeholder:text-slate-600 focus:border-indigo-500/50 outline-none transition-all font-bold"
+                          />
+                        </div>
                         <div className="flex flex-wrap gap-2 max-h-[120px] overflow-y-auto">
                           {materials
                             .filter(m => !formData.materialColors.some(mc => mc.materialId === m.id))
+                            .filter(m => !colorSearchTerm || m.name.toLowerCase().includes(colorSearchTerm.toLowerCase()))
                             .map(m => (
                             <button
                               key={m.id}
