@@ -40,7 +40,7 @@ export default function ResellersPage() {
 
   // Filtros do Relatório
   const [reportFilters, setReportFilters] = useState({
-    resellerId: '',
+    resellerName: '',
     product: '',
     startDate: '',
     endDate: '',
@@ -93,11 +93,7 @@ export default function ResellersPage() {
         const data = await resellersService.getAll();
         setResellers(data);
       } else if (activeTab === 'relatorio') {
-        const params: any = {};
-        if (reportFilters.resellerId) params.resellerId = reportFilters.resellerId;
-        if (reportFilters.startDate) params.startDate = reportFilters.startDate;
-        if (reportFilters.endDate) params.endDate = reportFilters.endDate;
-        const data = await resellersService.getCommissionReport(params);
+        const data = await resellersService.getCommissionReport();
         setReport(data);
       }
     } catch (err: any) {
@@ -107,25 +103,8 @@ export default function ResellersPage() {
     }
   };
 
-  const applyReportFilters = async () => {
-    setLoading(true);
-    try {
-      const params: any = {};
-      if (reportFilters.resellerId) params.resellerId = reportFilters.resellerId;
-      if (reportFilters.startDate) params.startDate = reportFilters.startDate;
-      if (reportFilters.endDate) params.endDate = reportFilters.endDate;
-      const data = await resellersService.getCommissionReport(params);
-      setReport(data);
-    } catch (err: any) {
-      toast.error('Erro ao carregar relatório: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const resetReportFilters = () => {
-    setReportFilters({ resellerId: '', product: '', startDate: '', endDate: '', status: '', category: '' });
-    resellersService.getCommissionReport().then(setReport).catch(() => {});
+    setReportFilters({ resellerName: '', product: '', startDate: '', endDate: '', status: '', category: '' });
   };
 
   // ─── AÇÕES DE REVENDEDOR ──────────────────────────────────
@@ -456,12 +435,29 @@ export default function ResellersPage() {
   };
 
   const renderRelatorio = () => {
-    // Client-side filters: product name, status
+    // Client-side filters
     const filteredRows = (report?.rows || []).filter((r: any) => {
+      // Nome do Revendedor
+      if (reportFilters.resellerName && !r.resellerName?.toLowerCase().includes(reportFilters.resellerName.toLowerCase())) return false;
+      // Nome do Produto
       if (reportFilters.product && !r.productName?.toLowerCase().includes(reportFilters.product.toLowerCase())) return false;
+      // Categoria
       if (reportFilters.category && r.categoryName !== reportFilters.category) return false;
+      // Status de Vendas
       if (reportFilters.status === 'with_sales' && r.quantitySold <= 0) return false;
       if (reportFilters.status === 'no_sales' && r.quantitySold > 0) return false;
+      // Data de Início
+      if (reportFilters.startDate) {
+        const itemDate = new Date(r.sentAt).getTime();
+        const startDate = new Date(`${reportFilters.startDate}T00:00:00`).getTime();
+        if (itemDate < startDate) return false;
+      }
+      // Data de Fim
+      if (reportFilters.endDate) {
+        const itemDate = new Date(r.sentAt).getTime();
+        const endDate = new Date(`${reportFilters.endDate}T23:59:59`).getTime();
+        if (itemDate > endDate) return false;
+      }
       return true;
     });
 
@@ -489,10 +485,10 @@ export default function ResellersPage() {
 
     const exportPDF = () => {
       const dateLabel = reportFilters.startDate && reportFilters.endDate
-        ? `${new Date(reportFilters.startDate).toLocaleDateString('pt-BR')} até ${new Date(reportFilters.endDate).toLocaleDateString('pt-BR')}`
+        ? `${new Date(`${reportFilters.startDate}T00:00:00`).toLocaleDateString('pt-BR')} até ${new Date(`${reportFilters.endDate}T00:00:00`).toLocaleDateString('pt-BR')}`
         : 'Todos os períodos';
-      const resellerLabel = reportFilters.resellerId
-        ? (allResellersForFilter.find(r => r.id === reportFilters.resellerId)?.name || '')
+      const resellerLabel = reportFilters.resellerName
+        ? `Buscando: ${reportFilters.resellerName}`
         : 'Todos os revendedores';
 
       const rowsHtml = filteredRows.map((r: any) => `
@@ -551,18 +547,20 @@ export default function ResellersPage() {
       <div className="space-y-6">
         {/* Filter Panel */}
         <div className="glass-card p-5 border-white/10">
-          <div className="flex items-center gap-2 mb-4">
-            <Filter size={14} className="text-emerald-400" />
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Filtros do Relatório</span>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Filter size={14} className="text-emerald-400" />
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Filtros do Relatório (Tempo Real)</span>
+            </div>
+            <button onClick={resetReportFilters} className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white text-[10px] uppercase tracking-widest font-bold flex items-center gap-1.5 transition-colors">
+              <RefreshCw size={12} /><span>Limpar Filtros</span>
+            </button>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
             {/* Revendedor */}
             <div className="lg:col-span-1">
               <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Revendedor</label>
-              <select value={reportFilters.resellerId} onChange={e => setReportFilters(p => ({...p, resellerId: e.target.value}))} className="glass-input w-full text-xs py-2">
-                <option value="">Todos</option>
-                {allResellersForFilter.map((r: any) => <option key={r.id} value={r.id}>{r.name}</option>)}
-              </select>
+              <input type="text" placeholder="Buscar por nome..." value={reportFilters.resellerName} onChange={e => setReportFilters(p => ({...p, resellerName: e.target.value}))} className="glass-input w-full text-xs py-2" />
             </div>
             {/* Produto */}
             <div className="lg:col-span-1">
@@ -596,14 +594,6 @@ export default function ResellersPage() {
               <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Data Fim</label>
               <input type="date" value={reportFilters.endDate} onChange={e => setReportFilters(p => ({...p, endDate: e.target.value}))} className="glass-input w-full text-xs py-2" />
             </div>
-          </div>
-          <div className="flex gap-2 mt-4">
-            <button onClick={applyReportFilters} disabled={loading} className="btn-premium py-2 px-5 text-xs shadow-emerald-500/20 disabled:opacity-50">
-              <Filter size={13} /><span>Aplicar Filtros</span>
-            </button>
-            <button onClick={resetReportFilters} className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-colors">
-              <RefreshCw size={13} /><span>Limpar</span>
-            </button>
           </div>
         </div>
 
