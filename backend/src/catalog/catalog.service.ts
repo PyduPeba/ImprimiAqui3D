@@ -31,21 +31,35 @@ export class CatalogService {
     }
 
     private coerceProductFields(rest: any): void {
-        if (rest.weightGrams !== undefined) rest.weightGrams = Number(rest.weightGrams);
-        if (rest.printTimeMinutes !== undefined) rest.printTimeMinutes = Number(rest.printTimeMinutes);
-        if (rest.stockQuantity !== undefined) rest.stockQuantity = Number(rest.stockQuantity);
+        // Valores default para campos não nulos caso venham undefined
+        rest.weightGrams = rest.weightGrams !== undefined && rest.weightGrams !== '' ? Number(rest.weightGrams) : 0;
+        rest.printTimeMinutes = rest.printTimeMinutes !== undefined && rest.printTimeMinutes !== '' ? Number(rest.printTimeMinutes) : 0;
+        rest.stockQuantity = rest.stockQuantity !== undefined && rest.stockQuantity !== '' ? Number(rest.stockQuantity) : 0;
+        
         if (rest.minStockAlert !== undefined && rest.minStockAlert !== null && rest.minStockAlert !== '')
             rest.minStockAlert = Number(rest.minStockAlert);
-        if (rest.commissionPercent !== undefined) rest.commissionPercent = Number(rest.commissionPercent);
+        else rest.minStockAlert = null;
+        
+        if (rest.commissionPercent !== undefined && rest.commissionPercent !== '') 
+            rest.commissionPercent = Number(rest.commissionPercent);
+        else rest.commissionPercent = 0;
+        
         if (rest.salePrice !== undefined && rest.salePrice !== null && rest.salePrice !== '')
             rest.salePrice = Number(rest.salePrice);
         else delete rest.salePrice;
+        
         if (rest.productionCost !== undefined && rest.productionCost !== null && rest.productionCost !== '')
             rest.productionCost = Number(rest.productionCost);
         else delete rest.productionCost;
+        
         if (rest.fixedPrice !== undefined && rest.fixedPrice !== null && rest.fixedPrice !== '')
             rest.fixedPrice = Number(rest.fixedPrice);
         else delete rest.fixedPrice;
+
+        // Evita erro de constraint unique no SKU vazio
+        if (rest.sku === '') {
+            rest.sku = null;
+        }
 
         // Cores / Filamentos
         if (rest.isMultiColor !== undefined) rest.isMultiColor = Boolean(rest.isMultiColor);
