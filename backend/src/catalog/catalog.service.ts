@@ -46,6 +46,10 @@ export class CatalogService {
         if (rest.fixedPrice !== undefined && rest.fixedPrice !== null && rest.fixedPrice !== '')
             rest.fixedPrice = Number(rest.fixedPrice);
         else delete rest.fixedPrice;
+
+        // Cores / Filamentos
+        if (rest.isMultiColor !== undefined) rest.isMultiColor = Boolean(rest.isMultiColor);
+        // materialColors is already a JSON array, no coercion needed
     }
 
     // ─── Produtos ─────────────────────────────────────────

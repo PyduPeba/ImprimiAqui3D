@@ -63,6 +63,13 @@ export class Product {
     @Column({ type: 'int', nullable: true })
     minStockAlert: number; // alerta de estoque baixo
 
+    // --- Cores / Filamentos ---
+    @Column({ type: 'boolean', default: false })
+    isMultiColor: boolean;
+
+    @Column({ type: 'jsonb', nullable: true })
+    materialColors: { materialId: string; materialName: string; color: string }[];
+
     // --- Imagem ---
     @Column({ nullable: true })
     imageUrl: string;

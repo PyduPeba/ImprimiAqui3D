@@ -16,6 +16,8 @@ import {
   Filter,
   Image as ImageIcon,
   Upload,
+  Palette,
+  Circle,
   ChevronRight,
   Monitor,
   HardDrive,
@@ -61,6 +63,8 @@ export default function CatalogPage() {
     stockQuantity: 0,
     minStockAlert: 0,
     imageUrl: '',
+    isMultiColor: false,
+    materialColors: [] as { materialId: string; materialName: string; color: string }[],
   });
 
   const [categoryForm, setCategoryForm] = useState({
@@ -198,6 +202,8 @@ export default function CatalogPage() {
         stockQuantity: Number(product.stockQuantity) || 0,
         minStockAlert: Number(product.minStockAlert) || 0,
         imageUrl: product.imageUrl || '',
+        isMultiColor: product.isMultiColor || false,
+        materialColors: product.materialColors || [],
       });
     } else {
       setFormData({
@@ -218,6 +224,8 @@ export default function CatalogPage() {
         stockQuantity: 0,
         minStockAlert: 0,
         imageUrl: '',
+        isMultiColor: false,
+        materialColors: [],
       });
     }
     setShowModal(true);
@@ -591,6 +599,83 @@ export default function CatalogPage() {
                    </div>
                 </div>
 
+                {/* Cores / Filamentos */}
+                <div className="border-t border-white/5 pt-5 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
+                      <Palette size={12} /> Cores / Filamentos
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({...formData, isMultiColor: !formData.isMultiColor, materialColors: formData.isMultiColor ? formData.materialColors.slice(0, 1) : formData.materialColors })}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all ${
+                        formData.isMultiColor 
+                          ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-400' 
+                          : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <Circle size={8} className={formData.isMultiColor ? 'fill-indigo-400' : ''} />
+                      {formData.isMultiColor ? 'Multicolor' : 'Monocolor'}
+                    </button>
+                  </div>
+
+                  {/* Color chips selector */}
+                  <div className="space-y-3">
+                    {/* Selected colors */}
+                    {formData.materialColors.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {formData.materialColors.map((mc, idx) => (
+                          <div key={idx} className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 group">
+                            <div className="w-4 h-4 rounded-full border border-white/20 shadow-inner" style={{ backgroundColor: mc.color || '#888' }} />
+                            <span className="text-xs font-bold text-white">{mc.materialName}</span>
+                            <button
+                              type="button"
+                              onClick={() => setFormData({...formData, materialColors: formData.materialColors.filter((_, i) => i !== idx)})}
+                              className="text-slate-500 hover:text-rose-400 transition-colors ml-1"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Available colors from inventory */}
+                    {(formData.isMultiColor || formData.materialColors.length === 0) && (
+                      <div className="bg-white/5 border border-white/5 rounded-xl p-3">
+                        <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest block mb-3">
+                          {formData.isMultiColor ? 'Adicionar Cores' : 'Selecionar Cor'}
+                        </span>
+                        <div className="flex flex-wrap gap-2 max-h-[120px] overflow-y-auto">
+                          {materials
+                            .filter(m => !formData.materialColors.some(mc => mc.materialId === m.id))
+                            .map(m => (
+                            <button
+                              key={m.id}
+                              type="button"
+                              onClick={() => {
+                                const newColor = { materialId: m.id, materialName: m.name, color: m.color || '#888' };
+                                if (formData.isMultiColor) {
+                                  setFormData({...formData, materialColors: [...formData.materialColors, newColor]});
+                                } else {
+                                  setFormData({...formData, materialColors: [newColor], defaultMaterialId: m.id});
+                                }
+                              }}
+                              className="flex items-center gap-2 bg-slate-800/80 hover:bg-slate-700/80 border border-white/5 hover:border-white/20 rounded-lg px-3 py-1.5 transition-all group"
+                            >
+                              <div className="w-3.5 h-3.5 rounded-full border border-white/20 shadow-inner" style={{ backgroundColor: m.color || '#888' }} />
+                              <span className="text-[10px] font-bold text-slate-300 group-hover:text-white truncate max-w-[120px]">{m.name}</span>
+                            </button>
+                          ))}
+                          {materials.length === 0 && (
+                            <span className="text-[10px] text-slate-600 font-bold">Nenhum filamento cadastrado no estoque.</span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 {/* Novos campos financeiros */}
                 <div className="border-t border-white/5 pt-5 space-y-4">
                   <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">Precificação & Estoque</p>
@@ -950,8 +1035,25 @@ export default function CatalogPage() {
                   </div>
                 </div>
 
-                {/* Material Info */}
-                {previewImage.defaultMaterial && (
+                {/* Colors / Materials Info */}
+                {(previewImage.materialColors && previewImage.materialColors.length > 0) ? (
+                  <div className="bg-white/5 border border-white/5 rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
+                        <Palette size={10} /> {previewImage.isMultiColor ? 'Multicolor' : 'Monocolor'}
+                      </span>
+                      <span className="text-[9px] font-black text-slate-500 uppercase">{previewImage.materialColors.length} {previewImage.materialColors.length === 1 ? 'cor' : 'cores'}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {previewImage.materialColors.map((mc: any, idx: number) => (
+                        <div key={idx} className="flex items-center gap-2 bg-slate-800/80 border border-white/10 rounded-lg px-3 py-1.5">
+                          <div className="w-4 h-4 rounded-full border border-white/20 shadow-lg" style={{ backgroundColor: mc.color || '#888' }} />
+                          <span className="text-xs font-bold text-white">{mc.materialName}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : previewImage.defaultMaterial && (
                   <div className="bg-white/5 border border-white/5 rounded-xl p-4">
                     <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-2">Material Padrão</span>
                     <div className="flex items-center justify-between">
