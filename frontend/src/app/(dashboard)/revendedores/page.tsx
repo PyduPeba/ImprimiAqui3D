@@ -135,6 +135,20 @@ export default function ResellersPage() {
     productId: '', quantitySent: 1, unitPrice: 0, commissionPercent: '', notes: ''
   });
   const [showSendProductModal, setShowSendProductModal] = useState(false);
+  const [sendProductFilter, setSendProductFilter] = useState({ category: '', search: '' });
+
+  // ESC key to close modals/drawers
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (showSendProductModal) setShowSendProductModal(false);
+        else if (showResellerModal) setShowResellerModal(false);
+        else if (showInventoryDrawer) setShowInventoryDrawer(false);
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [showSendProductModal, showResellerModal, showInventoryDrawer]);
 
   const openInventoryDrawer = async (reseller: any) => {
     setSelectedReseller(reseller);
@@ -156,6 +170,7 @@ export default function ResellersPage() {
       const prods = await catalogService.getProducts();
       setProducts(prods);
       setInventoryForm({ productId: '', quantitySent: 1, unitPrice: 0, commissionPercent: '', notes: '' });
+      setSendProductFilter({ category: '', search: '' });
       setShowSendProductModal(true);
     } catch (err) {
       toast.error('Erro ao carregar produtos');
@@ -540,8 +555,14 @@ export default function ResellersPage() {
 
       {/* Drawer Inventário do Revendedor */}
       {showInventoryDrawer && resellerInventory && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] flex justify-end">
-          <div className="w-full max-w-4xl bg-slate-900 border-l border-white/10 h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+        <div 
+          className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] flex justify-end"
+          onClick={() => setShowInventoryDrawer(false)}
+        >
+          <div 
+            className="w-full max-w-4xl bg-slate-900 border-l border-white/10 h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="p-8 border-b border-white/5 flex items-center justify-between bg-slate-950/50">
               <div>
                 <h2 className="text-2xl font-black text-white flex items-center gap-3">
@@ -550,7 +571,7 @@ export default function ResellersPage() {
                 </h2>
                 <p className="text-slate-500 font-bold text-sm mt-1">Gestão de Inventário e Repasses</p>
               </div>
-              <button onClick={() => setShowInventoryDrawer(false)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 transition-colors"><X size={20} /></button>
+              <button onClick={() => setShowInventoryDrawer(false)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors"><X size={20} /></button>
             </div>
 
             <div className="p-8 flex-1 overflow-y-auto">
@@ -629,17 +650,59 @@ export default function ResellersPage() {
 
       {/* Modal Enviar Produto */}
       {showSendProductModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-[120] p-4">
-          <div className="glass-card max-w-lg w-full p-0">
-            <div className="px-6 py-5 border-b border-white/5 bg-slate-900/50">
+        <div 
+          className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-[120] p-4"
+          onClick={() => setShowSendProductModal(false)}
+        >
+          <div className="glass-card max-w-lg w-full p-0" onClick={(e) => e.stopPropagation()}>
+            <div className="px-6 py-5 border-b border-white/5 bg-slate-900/50 flex items-center justify-between">
               <h2 className="text-xl font-black text-white">Enviar Produto</h2>
+              <button onClick={() => setShowSendProductModal(false)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors"><X size={16} /></button>
             </div>
             <div className="p-6 space-y-5">
               <div>
                 <label className="block text-[10px] font-black text-slate-500 uppercase mb-2">Produto do Catálogo</label>
+                {/* Category filter */}
+                <div className="flex gap-2 mb-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => setSendProductFilter({ ...sendProductFilter, category: '' })}
+                    className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all ${
+                      !sendProductFilter.category ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400' : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Todos
+                  </button>
+                  {[...new Set(products.map(p => p.category?.name).filter(Boolean))].map(catName => (
+                    <button
+                      key={catName}
+                      type="button"
+                      onClick={() => setSendProductFilter({ ...sendProductFilter, category: catName })}
+                      className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all ${
+                        sendProductFilter.category === catName ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400' : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      {catName}
+                    </button>
+                  ))}
+                </div>
+                {/* Search */}
+                <div className="relative mb-2">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={14} />
+                  <input
+                    type="text"
+                    value={sendProductFilter.search}
+                    onChange={(e) => setSendProductFilter({ ...sendProductFilter, search: e.target.value })}
+                    placeholder="Buscar produto..."
+                    className="w-full bg-slate-900/60 border border-white/5 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder:text-slate-600 focus:border-emerald-500/50 outline-none transition-all font-bold"
+                  />
+                </div>
                 <select value={inventoryForm.productId} onChange={e => handleProductSelect(e.target.value)} className="glass-input w-full font-bold">
                   <option value="">Selecione...</option>
-                  {products.map(p => (
+                  {products
+                    .filter(p => !sendProductFilter.category || p.category?.name === sendProductFilter.category)
+                    .filter(p => !sendProductFilter.search || p.name.toLowerCase().includes(sendProductFilter.search.toLowerCase()))
+                    .map(p => (
                     <option key={p.id} value={p.id}>{p.name} - (Estoque: {p.stockQuantity})</option>
                   ))}
                 </select>

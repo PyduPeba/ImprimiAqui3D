@@ -146,6 +146,9 @@ export class ResellersService {
         if (!item) throw new NotFoundException('Item de inventário não encontrado');
         const old = { ...item };
 
+        // Track returned delta to adjust product stock
+        const previousReturned = item.quantityReturned || 0;
+
         if (data.quantitySold !== undefined) item.quantitySold = Number(data.quantitySold);
         if (data.quantityReturned !== undefined) item.quantityReturned = Number(data.quantityReturned);
         if (data.unitPrice !== undefined) item.unitPrice = Number(data.unitPrice);
@@ -153,6 +156,16 @@ export class ResellersService {
         if (data.notes !== undefined) item.notes = data.notes;
 
         const saved = await this.inventoryRepo.save(item);
+
+        // Return stock to product catalog when items are returned
+        const returnedDelta = (item.quantityReturned || 0) - previousReturned;
+        if (returnedDelta > 0 && item.product) {
+            const product = await this.productRepo.findOne({ where: { id: item.product.id } });
+            if (product) {
+                product.stockQuantity = (product.stockQuantity || 0) + returnedDelta;
+                await this.productRepo.save(product);
+            }
+        }
 
         await this.systemConfigService.logAction({
             userId: user.id,
