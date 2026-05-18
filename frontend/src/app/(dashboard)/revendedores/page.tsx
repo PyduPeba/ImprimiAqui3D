@@ -17,7 +17,13 @@ import {
   TrendingUp,
   Box,
   FileText,
-  BarChart3
+  BarChart3,
+  Calendar,
+  Filter,
+  Printer,
+  RefreshCw,
+  ArrowUpRight,
+  Tag
 } from 'lucide-react';
 import { resellersService } from '@/services/resellers.service';
 import { catalogService } from '@/services/catalog.service';
@@ -31,6 +37,17 @@ export default function ResellersPage() {
   const [summaries, setSummaries] = useState<any[]>([]);
   const [resellers, setResellers] = useState<any[]>([]);
   const [report, setReport] = useState<any>(null);
+
+  // Filtros do Relatório
+  const [reportFilters, setReportFilters] = useState({
+    resellerId: '',
+    product: '',
+    startDate: '',
+    endDate: '',
+    status: '', // 'with_sales' | 'no_sales' | ''
+    category: '',
+  });
+  const [allResellersForFilter, setAllResellersForFilter] = useState<any[]>([]);
   
   // Modais e Drawers
   const [showResellerModal, setShowResellerModal] = useState(false);
@@ -61,6 +78,11 @@ export default function ResellersPage() {
     loadData();
   }, [activeTab]);
 
+  // Always load resellers for filter dropdown
+  useEffect(() => {
+    resellersService.getAll().then(setAllResellersForFilter).catch(() => {});
+  }, []);
+
   const loadData = async () => {
     setLoading(true);
     try {
@@ -71,7 +93,11 @@ export default function ResellersPage() {
         const data = await resellersService.getAll();
         setResellers(data);
       } else if (activeTab === 'relatorio') {
-        const data = await resellersService.getCommissionReport();
+        const params: any = {};
+        if (reportFilters.resellerId) params.resellerId = reportFilters.resellerId;
+        if (reportFilters.startDate) params.startDate = reportFilters.startDate;
+        if (reportFilters.endDate) params.endDate = reportFilters.endDate;
+        const data = await resellersService.getCommissionReport(params);
         setReport(data);
       }
     } catch (err: any) {
@@ -79,6 +105,27 @@ export default function ResellersPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const applyReportFilters = async () => {
+    setLoading(true);
+    try {
+      const params: any = {};
+      if (reportFilters.resellerId) params.resellerId = reportFilters.resellerId;
+      if (reportFilters.startDate) params.startDate = reportFilters.startDate;
+      if (reportFilters.endDate) params.endDate = reportFilters.endDate;
+      const data = await resellersService.getCommissionReport(params);
+      setReport(data);
+    } catch (err: any) {
+      toast.error('Erro ao carregar relatório: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetReportFilters = () => {
+    setReportFilters({ resellerId: '', product: '', startDate: '', endDate: '', status: '', category: '' });
+    resellersService.getCommissionReport().then(setReport).catch(() => {});
   };
 
   // ─── AÇÕES DE REVENDEDOR ──────────────────────────────────
@@ -409,74 +456,229 @@ export default function ResellersPage() {
   };
 
   const renderRelatorio = () => {
-    if (!report) return <div className="text-slate-500 text-center py-10">Carregando relatório...</div>;
-    
+    // Client-side filters: product name, status
+    const filteredRows = (report?.rows || []).filter((r: any) => {
+      if (reportFilters.product && !r.productName?.toLowerCase().includes(reportFilters.product.toLowerCase())) return false;
+      if (reportFilters.category && r.categoryName !== reportFilters.category) return false;
+      if (reportFilters.status === 'with_sales' && r.quantitySold <= 0) return false;
+      if (reportFilters.status === 'no_sales' && r.quantitySold > 0) return false;
+      return true;
+    });
+
+    const filteredCommission = filteredRows.reduce((s: number, r: any) => s + Number(r.commissionValue), 0);
+    const filteredSales = filteredRows.reduce((s: number, r: any) => s + Number(r.salesValue), 0);
+    const filteredSold = filteredRows.reduce((s: number, r: any) => s + Number(r.quantitySold), 0);
+    const filteredInPossession = filteredRows.reduce((s: number, r: any) => s + Number(r.quantityInPossession), 0);
+
+    const uniqueCategories = [...new Set((report?.rows || []).map((r: any) => r.categoryName).filter(Boolean))] as string[];
+
     const exportCSV = () => {
-      const headers = ['Revendedor', 'Produto', 'SKU', 'Qtd Vendida', 'Preço Unitário', 'Comissão %', 'Valor Comissão', 'Valor Venda', 'Data Envio'];
-      const rows = report.rows.map((r: any) => [
-        r.resellerName, r.productName, r.productSku || '', r.quantitySold, r.unitPrice, r.commissionPercent, r.commissionValue, r.salesValue, new Date(r.sentAt).toLocaleDateString()
+      const headers = ['Data Envio','Revendedor','Produto','SKU','Categoria','Enviados','Vendidos','Devolvidos','Em Posse','Preço Unit.','Comissão %','Vlr. Comissão','Vlr. Venda'];
+      const rows = filteredRows.map((r: any) => [
+        new Date(r.sentAt).toLocaleDateString('pt-BR'), r.resellerName, r.productName,
+        r.productSku||'', r.categoryName||'', r.quantitySent, r.quantitySold,
+        r.quantityReturned, r.quantityInPossession, Number(r.unitPrice).toFixed(2),
+        r.commissionPercent, Number(r.commissionValue).toFixed(2), Number(r.salesValue).toFixed(2)
       ]);
-      const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows.map((e: any[]) => e.join(','))].join('\n');
-      const encodedUri = encodeURI(csvContent);
+      const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers.join(';'), ...rows.map((e: any[]) => e.join(';'))].join('\n');
       const link = document.createElement("a");
-      link.setAttribute("href", encodedUri);
-      link.setAttribute("download", "comissoes_revendedores.csv");
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      link.setAttribute("href", encodeURI(csvContent));
+      link.setAttribute("download", `comissoes_${new Date().toISOString().slice(0,10)}.csv`);
+      document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    };
+
+    const exportPDF = () => {
+      const dateLabel = reportFilters.startDate && reportFilters.endDate
+        ? `${new Date(reportFilters.startDate).toLocaleDateString('pt-BR')} até ${new Date(reportFilters.endDate).toLocaleDateString('pt-BR')}`
+        : 'Todos os períodos';
+      const resellerLabel = reportFilters.resellerId
+        ? (allResellersForFilter.find(r => r.id === reportFilters.resellerId)?.name || '')
+        : 'Todos os revendedores';
+
+      const rowsHtml = filteredRows.map((r: any) => `
+        <tr>
+          <td>${new Date(r.sentAt).toLocaleDateString('pt-BR')}</td>
+          <td><strong>${r.resellerName}</strong></td>
+          <td>${r.productName}${r.productSku ? `<br><small>${r.productSku}</small>` : ''}</td>
+          <td>${r.categoryName||'—'}</td>
+          <td style="text-align:center">${r.quantitySent}</td>
+          <td style="text-align:center;color:#10b981"><strong>${r.quantitySold}</strong></td>
+          <td style="text-align:center">${r.quantityReturned}</td>
+          <td style="text-align:center">${r.quantityInPossession}</td>
+          <td style="text-align:right">R$ ${Number(r.unitPrice).toFixed(2)}</td>
+          <td style="text-align:center">${r.commissionPercent}%</td>
+          <td style="text-align:right;color:#f59e0b"><strong>R$ ${Number(r.commissionValue).toFixed(2)}</strong></td>
+        </tr>`).join('');
+
+      const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Relatório de Comissões</title>
+      <style>
+        body{font-family:Arial,sans-serif;font-size:11px;color:#1e293b;margin:0;padding:20px}
+        h1{font-size:20px;margin:0 0 4px}
+        .meta{color:#64748b;font-size:11px;margin-bottom:20px}
+        .kpis{display:flex;gap:12px;margin-bottom:20px}
+        .kpi{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px 18px;flex:1}
+        .kpi-label{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:#94a3b8;font-weight:700}
+        .kpi-val{font-size:18px;font-weight:900;margin-top:2px}
+        .kpi-val.green{color:#10b981}.kpi-val.amber{color:#f59e0b}.kpi-val.blue{color:#3b82f6}
+        table{width:100%;border-collapse:collapse}
+        th{background:#0f172a;color:#fff;padding:8px 10px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:.08em}
+        td{padding:7px 10px;border-bottom:1px solid #e2e8f0;vertical-align:top}
+        tr:nth-child(even){background:#f8fafc}
+        small{color:#94a3b8}
+        .footer{margin-top:20px;font-size:9px;color:#94a3b8;text-align:right}
+      </style></head><body>
+      <h1>Relatório de Comissões — ImprimiAqui3D</h1>
+      <div class="meta">Período: ${dateLabel} &nbsp;|&nbsp; Revendedor: ${resellerLabel} &nbsp;|&nbsp; Gerado em: ${new Date().toLocaleString('pt-BR')}</div>
+      <div class="kpis">
+        <div class="kpi"><div class="kpi-label">Total Vendas</div><div class="kpi-val green">R$ ${filteredSales.toFixed(2)}</div></div>
+        <div class="kpi"><div class="kpi-label">Total Comissões</div><div class="kpi-val amber">R$ ${filteredCommission.toFixed(2)}</div></div>
+        <div class="kpi"><div class="kpi-label">Unidades Vendidas</div><div class="kpi-val blue">${filteredSold}</div></div>
+        <div class="kpi"><div class="kpi-label">Em Posse</div><div class="kpi-val">${filteredInPossession}</div></div>
+      </div>
+      <table><thead><tr>
+        <th>Data</th><th>Revendedor</th><th>Produto</th><th>Categoria</th>
+        <th>Env.</th><th>Vend.</th><th>Dev.</th><th>Posse</th>
+        <th>Preço</th><th>Comis.</th><th>Vlr. Comis.</th>
+      </tr></thead><tbody>${rowsHtml}</tbody></table>
+      <div class="footer">ImprimiAqui3D • Relatório gerado automaticamente</div>
+      </body></html>`;
+
+      const win = window.open('', '_blank');
+      if (win) { win.document.write(html); win.document.close(); win.print(); }
     };
 
     return (
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div className="flex gap-4">
-            <div className="stat-card p-4 flex gap-4 min-w-[200px]">
-              <div>
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1">Total Comissões</span>
-                <span className="text-xl font-black text-amber-400">R$ {Number(report.totalCommission).toFixed(2)}</span>
-              </div>
+        {/* Filter Panel */}
+        <div className="glass-card p-5 border-white/10">
+          <div className="flex items-center gap-2 mb-4">
+            <Filter size={14} className="text-emerald-400" />
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Filtros do Relatório</span>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            {/* Revendedor */}
+            <div className="lg:col-span-1">
+              <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Revendedor</label>
+              <select value={reportFilters.resellerId} onChange={e => setReportFilters(p => ({...p, resellerId: e.target.value}))} className="glass-input w-full text-xs py-2">
+                <option value="">Todos</option>
+                {allResellersForFilter.map((r: any) => <option key={r.id} value={r.id}>{r.name}</option>)}
+              </select>
             </div>
-            <div className="stat-card p-4 flex gap-4 min-w-[200px]">
-              <div>
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1">Total Vendas Acumuladas</span>
-                <span className="text-xl font-black text-emerald-400">R$ {Number(report.totalSales).toFixed(2)}</span>
-              </div>
+            {/* Produto */}
+            <div className="lg:col-span-1">
+              <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Produto</label>
+              <input type="text" placeholder="Buscar produto..." value={reportFilters.product} onChange={e => setReportFilters(p => ({...p, product: e.target.value}))} className="glass-input w-full text-xs py-2" />
+            </div>
+            {/* Categoria */}
+            <div className="lg:col-span-1">
+              <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Categoria</label>
+              <select value={reportFilters.category} onChange={e => setReportFilters(p => ({...p, category: e.target.value}))} className="glass-input w-full text-xs py-2">
+                <option value="">Todas</option>
+                {uniqueCategories.map((c: string) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            {/* Status */}
+            <div className="lg:col-span-1">
+              <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Status</label>
+              <select value={reportFilters.status} onChange={e => setReportFilters(p => ({...p, status: e.target.value}))} className="glass-input w-full text-xs py-2">
+                <option value="">Todos</option>
+                <option value="with_sales">Com Vendas</option>
+                <option value="no_sales">Sem Vendas</option>
+              </select>
+            </div>
+            {/* Data início */}
+            <div className="lg:col-span-1">
+              <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Data Início</label>
+              <input type="date" value={reportFilters.startDate} onChange={e => setReportFilters(p => ({...p, startDate: e.target.value}))} className="glass-input w-full text-xs py-2" />
+            </div>
+            {/* Data Fim */}
+            <div className="lg:col-span-1">
+              <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Data Fim</label>
+              <input type="date" value={reportFilters.endDate} onChange={e => setReportFilters(p => ({...p, endDate: e.target.value}))} className="glass-input w-full text-xs py-2" />
             </div>
           </div>
-          <button onClick={exportCSV} className="btn-premium py-2 px-4 shadow-emerald-500/20 text-sm h-10">
-            <Download size={16} />
-            <span>Exportar CSV</span>
+          <div className="flex gap-2 mt-4">
+            <button onClick={applyReportFilters} disabled={loading} className="btn-premium py-2 px-5 text-xs shadow-emerald-500/20 disabled:opacity-50">
+              <Filter size={13} /><span>Aplicar Filtros</span>
+            </button>
+            <button onClick={resetReportFilters} className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-colors">
+              <RefreshCw size={13} /><span>Limpar</span>
+            </button>
+          </div>
+        </div>
+
+        {/* KPI Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="stat-card p-5">
+            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-2">Total Vendas</span>
+            <span className="text-2xl font-black text-emerald-400">R$ {filteredSales.toFixed(2)}</span>
+            <div className="text-[9px] text-slate-600 font-bold mt-1">{filteredRows.length} registros</div>
+          </div>
+          <div className="stat-card p-5">
+            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-2">Total Comissões</span>
+            <span className="text-2xl font-black text-amber-400">R$ {filteredCommission.toFixed(2)}</span>
+            <div className="text-[9px] text-slate-600 font-bold mt-1">a pagar aos revendedores</div>
+          </div>
+          <div className="stat-card p-5">
+            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-2">Unidades Vendidas</span>
+            <span className="text-2xl font-black text-blue-400">{filteredSold}</span>
+            <div className="text-[9px] text-slate-600 font-bold mt-1">no período selecionado</div>
+          </div>
+          <div className="stat-card p-5">
+            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-2">Em Posse dos Revend.</span>
+            <span className="text-2xl font-black text-slate-300">{filteredInPossession}</span>
+            <div className="text-[9px] text-slate-600 font-bold mt-1">unidades em campo</div>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex justify-end gap-3">
+          <button onClick={exportCSV} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-xs font-bold transition-colors border border-white/10">
+            <Download size={14} /><span>Exportar CSV</span>
+          </button>
+          <button onClick={exportPDF} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 text-xs font-bold transition-colors border border-rose-500/20">
+            <Printer size={14} /><span>Exportar PDF / Imprimir</span>
           </button>
         </div>
 
+        {/* Table */}
         <div className="glass-card overflow-hidden">
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-white/5 bg-slate-900/50">
-                <th className="p-4 text-slate-400 font-black uppercase text-[10px] tracking-widest">Data Envio</th>
+                <th className="p-4 text-slate-400 font-black uppercase text-[10px] tracking-widest">Data</th>
                 <th className="p-4 text-slate-400 font-black uppercase text-[10px] tracking-widest">Revendedor</th>
                 <th className="p-4 text-slate-400 font-black uppercase text-[10px] tracking-widest">Produto</th>
-                <th className="p-4 text-slate-400 font-black uppercase text-[10px] tracking-widest text-center">Vendido</th>
-                <th className="p-4 text-slate-400 font-black uppercase text-[10px] tracking-widest text-right">Comissão</th>
-                <th className="p-4 text-slate-400 font-black uppercase text-[10px] tracking-widest text-right">Vlr. Comissão</th>
+                <th className="p-4 text-slate-400 font-black uppercase text-[10px] tracking-widest text-center">Env.</th>
+                <th className="p-4 text-slate-400 font-black uppercase text-[10px] tracking-widest text-center">Vend.</th>
+                <th className="p-4 text-slate-400 font-black uppercase text-[10px] tracking-widest text-center">Posse</th>
+                <th className="p-4 text-slate-400 font-black uppercase text-[10px] tracking-widest text-right">Vlr. Venda</th>
+                <th className="p-4 text-slate-400 font-black uppercase text-[10px] tracking-widest text-right">Comis.</th>
+                <th className="p-4 text-slate-400 font-black uppercase text-[10px] tracking-widest text-right">Vlr. Comis.</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {report.rows.map((r: any, idx: number) => (
+              {filteredRows.map((r: any, idx: number) => (
                 <tr key={idx} className="hover:bg-white/5 transition-colors">
-                  <td className="p-4 text-slate-300">{new Date(r.sentAt).toLocaleDateString()}</td>
+                  <td className="p-4 text-slate-400 text-xs">{new Date(r.sentAt).toLocaleDateString('pt-BR')}</td>
                   <td className="p-4 font-bold text-white">{r.resellerName}</td>
                   <td className="p-4 text-slate-300">
-                    <div>{r.productName}</div>
-                    {r.productSku && <div className="text-[10px] text-slate-500">SKU: {r.productSku}</div>}
+                    <div className="font-bold">{r.productName}</div>
+                    <div className="flex gap-2 mt-0.5">
+                      {r.productSku && <span className="text-[9px] text-slate-600">SKU: {r.productSku}</span>}
+                      {r.categoryName && <span className="text-[9px] px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">{r.categoryName}</span>}
+                    </div>
                   </td>
+                  <td className="p-4 text-center text-slate-400">{r.quantitySent}</td>
                   <td className="p-4 text-center font-black text-emerald-400">{r.quantitySold}</td>
+                  <td className="p-4 text-center text-blue-400">{r.quantityInPossession}</td>
+                  <td className="p-4 text-right text-slate-300">R$ {Number(r.salesValue).toFixed(2)}</td>
                   <td className="p-4 text-right text-slate-400">{r.commissionPercent}%</td>
                   <td className="p-4 text-right font-black text-amber-400">R$ {Number(r.commissionValue).toFixed(2)}</td>
                 </tr>
               ))}
-              {report.rows.length === 0 && (
-                <tr><td colSpan={6} className="p-8 text-center text-slate-500">Nenhum registro encontrado.</td></tr>
+              {filteredRows.length === 0 && (
+                <tr><td colSpan={9} className="p-8 text-center text-slate-500">Nenhum registro encontrado para os filtros selecionados.</td></tr>
               )}
             </tbody>
           </table>
@@ -484,6 +686,7 @@ export default function ResellersPage() {
       </div>
     );
   };
+
 
   return (
     <div className="p-10 max-w-[1600px] mx-auto min-h-[calc(100vh-80px)] space-y-8">
