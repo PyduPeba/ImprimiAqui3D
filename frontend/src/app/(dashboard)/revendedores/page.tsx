@@ -539,8 +539,22 @@ export default function ResellersPage() {
       <div class="footer">ImprimiAqui3D • Relatório gerado automaticamente</div>
       </body></html>`;
 
-      const win = window.open('', '_blank');
-      if (win) { win.document.write(html); win.document.close(); win.print(); }
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      document.body.appendChild(iframe);
+      
+      const iframeDoc = iframe.contentWindow?.document;
+      if (iframeDoc) {
+        iframeDoc.open();
+        iframeDoc.write(html);
+        iframeDoc.close();
+        
+        iframe.contentWindow?.focus();
+        setTimeout(() => {
+          iframe.contentWindow?.print();
+          setTimeout(() => document.body.removeChild(iframe), 1000);
+        }, 200); // small delay to ensure styles are applied
+      }
     };
 
     return (
