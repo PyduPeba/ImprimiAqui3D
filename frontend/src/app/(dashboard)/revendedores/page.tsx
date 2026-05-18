@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Store, 
   Users, 
@@ -34,6 +35,9 @@ export default function ResellersPage() {
   // Modais e Drawers
   const [showResellerModal, setShowResellerModal] = useState(false);
   const [showInventoryDrawer, setShowInventoryDrawer] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
   
   // Seleções
   const [selectedReseller, setSelectedReseller] = useState<any>(null);
@@ -137,11 +141,15 @@ export default function ResellersPage() {
   const [showSendProductModal, setShowSendProductModal] = useState(false);
   const [sendProductFilter, setSendProductFilter] = useState({ category: '', search: '' });
 
+  const [actionModal, setActionModal] = useState<{ type: 'sale' | 'return'; itemId: string; max: number; current: number } | null>(null);
+  const [actionQty, setActionQty] = useState(1);
+
   // ESC key to close modals/drawers
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (showSendProductModal) setShowSendProductModal(false);
+        if (actionModal) setActionModal(null);
+        else if (showSendProductModal) setShowSendProductModal(false);
         else if (showResellerModal) setShowResellerModal(false);
         else if (showInventoryDrawer) setShowInventoryDrawer(false);
       }
@@ -207,37 +215,39 @@ export default function ResellersPage() {
     }
   };
 
-  const handleRegisterSale = async (itemId: string, currentSold: number, inPossession: number) => {
-    const qty = prompt(`Quantidade vendida (Máximo disponível: ${inPossession}):`, "1");
-    if (!qty) return;
-    const numQty = parseInt(qty);
-    if (isNaN(numQty) || numQty <= 0 || numQty > inPossession) return toast.error('Quantidade inválida');
-    
-    try {
-      await resellersService.updateInventoryItem(selectedReseller.id, itemId, {
-        quantitySold: currentSold + numQty
-      });
-      toast.success('Venda registrada!');
-      await loadResellerInventory(selectedReseller.id);
-    } catch (err) {
-      toast.error('Erro ao registrar venda');
-    }
+  const handleRegisterSale = (itemId: string, currentSold: number, inPossession: number) => {
+    setActionModal({ type: 'sale', itemId, max: inPossession, current: currentSold });
+    setActionQty(1);
   };
 
-  const handleRegisterReturn = async (itemId: string, currentReturned: number, inPossession: number) => {
-    const qty = prompt(`Quantidade devolvida (Máximo disponível: ${inPossession}):`, "1");
-    if (!qty) return;
-    const numQty = parseInt(qty);
-    if (isNaN(numQty) || numQty <= 0 || numQty > inPossession) return toast.error('Quantidade inválida');
-    
+  const handleRegisterReturn = (itemId: string, currentReturned: number, inPossession: number) => {
+    setActionModal({ type: 'return', itemId, max: inPossession, current: currentReturned });
+    setActionQty(1);
+  };
+
+  const handleConfirmAction = async () => {
+    if (!actionModal) return;
+    if (actionQty <= 0 || actionQty > actionModal.max) return toast.error('Quantidade inválida');
+
+    setLoading(true);
     try {
-      await resellersService.updateInventoryItem(selectedReseller.id, itemId, {
-        quantityReturned: currentReturned + numQty
-      });
-      toast.success('Devolução registrada!');
+      if (actionModal.type === 'sale') {
+        await resellersService.updateInventoryItem(selectedReseller.id, actionModal.itemId, {
+          quantitySold: actionModal.current + actionQty
+        });
+        toast.success('Venda registrada!');
+      } else {
+        await resellersService.updateInventoryItem(selectedReseller.id, actionModal.itemId, {
+          quantityReturned: actionModal.current + actionQty
+        });
+        toast.success('Devolução registrada!');
+      }
       await loadResellerInventory(selectedReseller.id);
+      setActionModal(null);
     } catch (err) {
-      toast.error('Erro ao registrar devolução');
+      toast.error('Erro ao registrar ' + (actionModal.type === 'sale' ? 'venda' : 'devolução'));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -505,10 +515,10 @@ export default function ResellersPage() {
         {activeTab === 'relatorio' && renderRelatorio()}
       </div>
 
-      {/* Modal Cadastro Revendedor */}
-      {showResellerModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-[100] p-4">
-          <div className="glass-card max-w-2xl w-full p-0">
+      {/* Modal Novo/Editar Revendedor */}
+      {mounted && showResellerModal && createPortal(
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[200] flex items-center justify-center p-4" onClick={() => setShowResellerModal(false)}>
+          <div className="glass-card max-w-2xl w-full p-0" onClick={(e) => e.stopPropagation()}>
             <div className="px-8 py-6 border-b border-white/5 flex items-center justify-between bg-slate-900/50">
               <h2 className="text-2xl font-black text-white">{resellerForm.id ? 'Editar Revendedor' : 'Novo Revendedor'}</h2>
               <button onClick={() => setShowResellerModal(false)} className="text-slate-400 hover:text-white"><X size={24} /></button>
@@ -550,13 +560,14 @@ export default function ResellersPage() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Drawer Inventário do Revendedor */}
-      {showInventoryDrawer && resellerInventory && (
+      {mounted && showInventoryDrawer && resellerInventory && createPortal(
         <div 
-          className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] flex justify-end"
+          className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[200] flex justify-end"
           onClick={() => setShowInventoryDrawer(false)}
         >
           <div 
@@ -645,13 +656,14 @@ export default function ResellersPage() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Modal Enviar Produto */}
-      {showSendProductModal && (
+      {mounted && showSendProductModal && createPortal(
         <div 
-          className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-[120] p-4"
+          className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-[210] p-4"
           onClick={() => setShowSendProductModal(false)}
         >
           <div className="glass-card max-w-lg w-full p-0" onClick={(e) => e.stopPropagation()}>
@@ -727,7 +739,42 @@ export default function ResellersPage() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Modal de Ação (Venda/Devolução) */}
+      {mounted && actionModal && createPortal(
+        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center z-[220] p-4 animate-in zoom-in-95 duration-200" onClick={() => setActionModal(null)}>
+          <div className="glass-card max-w-sm w-full p-6 border-white/10 shadow-[0_0_50px_rgba(16,185,129,0.1)]" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-black text-white">
+                {actionModal.type === 'sale' ? 'Registrar Venda' : 'Registrar Devolução'}
+              </h3>
+              <button onClick={() => setActionModal(null)} className="text-slate-400 hover:text-white transition-colors"><X size={20}/></button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Quantidade (Máx: {actionModal.max})</label>
+                <input 
+                  type="number" 
+                  min="1" 
+                  max={actionModal.max}
+                  value={actionQty}
+                  onChange={e => setActionQty(Number(e.target.value))}
+                  className="glass-input w-full text-2xl font-black text-center" 
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-8">
+              <button onClick={() => setActionModal(null)} className="flex-1 px-4 py-3 rounded-xl bg-white/5 font-bold text-slate-400 hover:text-white transition-colors">Cancelar</button>
+              <button onClick={handleConfirmAction} disabled={loading || actionQty < 1 || actionQty > actionModal.max} className="flex-1 btn-premium px-4 py-3 shadow-emerald-500/20 disabled:opacity-50">Confirmar</button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

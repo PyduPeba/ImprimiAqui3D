@@ -126,6 +126,13 @@ export class ResellersService {
 
         const saved = await this.inventoryRepo.save(item);
 
+        // Deduct stock from product catalog
+        if (saved.quantitySent > 0) {
+            product.stockQuantity = (product.stockQuantity || 0) - saved.quantitySent;
+            // Prevent negative stock visually if needed, though usually you want to see if it went negative
+            await this.productRepo.save(product);
+        }
+
         await this.systemConfigService.logAction({
             userId: user.id,
             storeId: user.storeId,
